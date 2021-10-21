@@ -2,7 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from   mpl_toolkits.mplot3d import Axes3D
 
-def plot_3d_histo_hits(hist, bins, cmap = mpl.cm.jet):
+def plot_3d_histo_hits(hist, bins, cmap = mpl.cm.jet, clabel = 'Energy'):
     '''
     This function plots the 3 dimension histogram created from the particles hits.
     Is a scatter of the bins central positions in order to appreciate all of them.
@@ -39,11 +39,11 @@ def plot_3d_histo_hits(hist, bins, cmap = mpl.cm.jet):
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
     ax.set_zlabel('Z ')
-    cb.set_label('Energy')
+    cb.set_label(clabel)
     plt.show()
 
 
-def plot_3d_histo_vox(hist, bins, th=0, square_voxels = False, edgecolor=None, cmap=mpl.cm.jet):
+def plot_3d_histo_vox(hist, bins, th=0, square_voxels = False, edgecolor=None, cmap=mpl.cm.jet, clabel = 'Energy'):
     '''
     This function plots the 3 dimension histogram created from the particles hits.
     This shows the voxels with the containing energy. Note that the axis labels dont represent 
@@ -107,6 +107,6 @@ def plot_3d_histo_vox(hist, bins, th=0, square_voxels = False, edgecolor=None, c
     ax.set_zlabel('Z ')
     ax.set_zticks(np.arange(nbinsZ))
     ax.set_zticklabels([int(i) for i in np.unique(bins[2][nonzero[2]])])
-    cb.set_label('Energy')
+    cb.set_label(clabel)
 
     plt.show()
