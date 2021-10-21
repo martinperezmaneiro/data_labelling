@@ -74,8 +74,9 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
         for i in nz:   #aqui recorre cada coordenada de cada tipo de hit
             nonzero_coors = tuple(i) 
             
-            if mc_hit_id[nonzero_coors] != 0: #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
-                continue                      #pasamos de volver a hacerle cosas
+            if mc_hit_id[nonzero_coors] != 0 and mc_hit_portion[nonzero_coors] != 0:
+                continue       #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
+                               #pasamos de volver a hacerle cosas
                 
             #Bucle en los histogramas para ver cual tiene el valor más grande en cada voxel, 
             #revelándome así qué tipo de voxel es
