@@ -42,19 +42,24 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
     
         mc_hit_ener: NUMPYARRAY
     D-dimensional histogram with the energies of the voxels.
+
+        mc_hit_portion: NUMPYARRAY
+    D-dimensional histogram with the ratio of the energy of the most important particle to the total energy, per voxel.
     
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     '''
     
-    bins         = bin_creator(img, steps, x0) 
-    mc_hit_id    = np.zeros(img.shape)   #array tridimensional a llenar con los identificadores
-    #mc_hit_id[:] = np.nan                #lo hago nan por si algún ID es 0 (no funciona bien, buscar alternativa)
-    unique_hits  = np.unique(hits_id)   #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
-    histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
+    bins           = bin_creator(img, steps, x0) 
+    mc_hit_id      = np.zeros(img.shape)   #array 3d a llenar con los identificadores
+    mc_hit_portion = np.zeros(img.shape)   #array 3d a llenar con el porcentaje de energía de la total que se lleva la partícula más importante
+    unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
     
+    mc_hit_ener, _ = mcimg(img, mccoors, mcenes, steps = steps, x0 = x0) #histograma de energías 
+
     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
-    
+    histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
+
     for hit_id in unique_hits:
         hit_id_mask = hits_id == hit_id                           #mascara de cada tipo de hit
         vox, _ = np.histogramdd(mccoors[hit_id_mask], 
@@ -69,6 +74,9 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
         for i in nz:   #aqui recorre cada coordenada de cada tipo de hit
             nonzero_coors = tuple(i) 
             
+            if mc_hit_id[nonzero_coors] != 0: #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
+                continue                      #pasamos de volver a hacerle cosas
+                
             #Bucle en los histogramas para ver cual tiene el valor más grande en cada voxel, 
             #revelándome así qué tipo de voxel es
             
@@ -78,7 +86,11 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
                 
             vox_eners = np.array(vox_eners)
             assert len(vox_eners) == len(unique_hits) 
-            mc_hit_id[nonzero_coors] = unique_hits[vox_eners.argmax()]   #mira cual es la posición del elemento mayor de vox_eners, toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío 
-    
-    mc_hit_ener, _ = mcimg(img, mccoors, mcenes, steps = steps, x0 = x0) #histograma de energías 
-    return mc_hit_id, mc_hit_ener, bins
+            selected_id = vox_eners.argmax() #mira la posición del elemento mayor en vox_eners
+            mc_hit_id[nonzero_coors] = unique_hits[selected_id]   #toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío 
+            
+            max_ener   = vox_eners[selected_id]     #energía de la partícula más importante en un voxel 
+            total_ener = mc_hit_ener[nonzero_coors] #la energía total contenida en ese voxel
+            mc_hit_portion[nonzero_coors] = max_ener / total_ener
+            
+    return mc_hit_id, mc_hit_ener, mc_hit_portion, bins
