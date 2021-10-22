@@ -6,10 +6,10 @@ def container_creator(total_size, voxel_size):
     Creates a container of the required size in order to get the bin_creator() function create exactly the needed bins
     
     Args:
-        total_size: TUPLE
+        total_size: TUPLE or LIST-like
     Maximum size of the container in each axis.
     
-        voxel_size: TUPLE
+        voxel_size: TUPLE or LIST-like
     Size of the voxel for each axis.
     
     RETURN:
