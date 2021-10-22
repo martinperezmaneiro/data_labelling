@@ -59,40 +59,27 @@ def bin_creator(img, steps = None, x0 = None):
     return bins
 
 
-def mcimg(img, mccoors, mcenes, steps = None, x0 = None):
+def mcimg(mccoors, mcenes, bins):
     '''
     This function creates a D-dimensional histogram weighted with the energies of particle hits.
     Thus, it voxelizes the space with certain voxel size and each voxel will contain the energy of
     the hits that fall inside.
     
     Args:
-        img: NUMPYARRAY
-    Array with the shape of the image (i.e. the full detector space). Together with steps and x0 will
-    create the desired bins for the histogram.
-    
         mccoors: NUMPYARRAY
     Coordinates of the particle hits. Having N hits, this sould be shaped as (N, D).
     
         mcenes: NUMPYARRAY
     Energies of the particle hits. Having N hits, hits should be shaped as (N,).
     
-        steps: TUPLE (default = None)
-    Desired distance between bins (i.e. bin size). The tuple size has to match img ndim.
-        
-        x0: TUPLE (default = None)
-    Desired lower value for the bins. The tuple size has to match img ndim.
+        bins: LIST OF ARRAYS
+    D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
+    It matches the bins local variable.
     
     RETURN:
         mcimg: NUMPYARRAY
     D-dimensional histogram with the energy counting in the appropriate bin.
-    
-        bins: LIST OF ARRAYS
-    D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
-    It matches the bins local variable.
-
-
     '''
-    bins  = bin_creator(img, steps, x0)
     mcimg, _  = np.histogramdd(mccoors, bins, weights = mcenes)
     
-    return mcimg, bins
+    return mcimg

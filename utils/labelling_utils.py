@@ -1,7 +1,7 @@
 import numpy as np
 from .histogram_utils import *
 
-def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
+def labelling(img, mccoors, mcenes, hits_id, bins):
     '''
     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
     The bins of this histogram will take the value of the ID hits that deposit more energy within them.
@@ -18,8 +18,7 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
     
     Args:
         img: NUMPYARRAY
-    Array with the shape of the image (i.e. the full detector space). Together with steps and x0 will
-    create the desired bins for the histogram.
+    Frame to contain the event.
     
         mccoors: NUMPYARRAY
     Coordinates of the particle hits. Having N hits, this sould be shaped as (N, D).
@@ -30,11 +29,8 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
         hits_id: NUMPYARRAY
     IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
     
-        steps: TUPLE (default = None)
-    Desired distance between bins (i.e. bin size). The tuple size has to match img ndim.
-        
-        x0: TUPLE (default = None)
-    Desired lower value for the bins. The tuple size has to match img ndim.
+        bins: LIST OF ARRAYS
+    D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     
     RETURN:
         mc_hit_id: NUMPYARRAY
@@ -42,20 +38,17 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
     
         mc_hit_ener: NUMPYARRAY
     D-dimensional histogram with the energies of the voxels.
-
+    
         mc_hit_portion: NUMPYARRAY
     D-dimensional histogram with the ratio of the energy of the most important particle to the total energy, per voxel.
     
-        bins: LIST OF ARRAYS
-    D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     '''
     
-    bins           = bin_creator(img, steps, x0) 
     mc_hit_id      = np.zeros(img.shape)   #array 3d a llenar con los identificadores
     mc_hit_portion = np.zeros(img.shape)   #array 3d a llenar con el porcentaje de energía de la total que se lleva la partícula más importante
     unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
     
-    mc_hit_ener, _ = mcimg(img, mccoors, mcenes, steps = steps, x0 = x0) #histograma de energías 
+    mc_hit_ener    = mcimg(mccoors, mcenes, bins) #histograma de energías 
 
     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
     histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
@@ -74,9 +67,9 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
         for i in nz:   #aqui recorre cada coordenada de cada tipo de hit
             nonzero_coors = tuple(i) 
             
-            if mc_hit_id[nonzero_coors] != 0 and mc_hit_portion[nonzero_coors] != 0:
-                continue       #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
-                               #pasamos de volver a hacerle cosas
+            if mc_hit_id[nonzero_coors] != 0 and mc_hit_portion[nonzero_coors] != 0: 
+                continue        #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
+                                #pasamos de volver a hacerle cosas
                 
             #Bucle en los histogramas para ver cual tiene el valor más grande en cada voxel, 
             #revelándome así qué tipo de voxel es
@@ -94,4 +87,4 @@ def labelling(img, mccoors, mcenes, hits_id, steps = None, x0 = None):
             total_ener = mc_hit_ener[nonzero_coors] #la energía total contenida en ese voxel
             mc_hit_portion[nonzero_coors] = max_ener / total_ener
             
-    return mc_hit_id, mc_hit_ener, mc_hit_portion, bins
+    return mc_hit_id, mc_hit_ener, mc_hit_portion

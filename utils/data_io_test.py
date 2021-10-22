@@ -12,9 +12,11 @@ def get_mchits_info_test(nevent, df):
 
 def histog_to_coord_test(nevent, df, total_size, steps = None, x0 = None):
     img = container_creator(total_size, steps)
+    bins = bin_creator(img, steps = steps, x0 = x0)
+
     mccoors, mcenes, hits_id = get_mchits_info(nevent, df)
     
-    voxel_id, voxel_ener, voxel_ratio, bins = labelling(img, mccoors, mcenes, hits_id, steps = steps, x0 = x0)
+    voxel_id, voxel_ener, voxel_ratio = labelling(img, mccoors, mcenes, hits_id, bins)
     coords = histog_to_coord(voxel_id, voxel_ener, voxel_ratio, bins)
     
     xcoor, ycoor, zcoor, eners, ratio, ids = coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3], coords[:, 4], coords[:, 5]

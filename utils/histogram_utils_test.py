@@ -24,10 +24,11 @@ def bins_test(img, steps = None, x0 = None):
 
 
 def mcimg_test(nevent, df, total_size, steps = None, x0 = None):
-    img = container_creator(total_size, steps)
+    img  = container_creator(total_size, steps)
+    bins = bin_creator(img, steps = steps, x0 = x0)
     mccoors, mcenes, ids = get_mchits_info(nevent, df)
     
-    voxel_ener, bins = mcimg(img, mccoors, mcenes, steps = steps, x0 = x0)
+    voxel_ener = mcimg(mccoors, mcenes, bins)
     
     assert voxel_ener.shape == img.shape
     assert sum(voxel_ener.flatten()) == sum(mcenes)
