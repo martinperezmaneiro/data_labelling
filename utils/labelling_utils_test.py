@@ -22,3 +22,6 @@ def labelling_test(nevent, df, total_size, steps = None, x0 = None):
     assert len(id_nonzero[0]) == len(ener_nonzero[0]) == len(port_nonzero[0])
     assert voxel_portion.max() <= 1. 
     assert all(np.isin(voxel_id_unique, id_unique))
+    for i in range(len(ener_nonzero)):
+        assert (ener_nonzero[i] == id_nonzero[i]).all() #check if they are the same nonzero coordinates
+        assert (ener_nonzero[i] == port_nonzero[i]).all()
