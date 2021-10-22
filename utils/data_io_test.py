@@ -14,13 +14,14 @@ def histog_to_coord_test(nevent, df, total_size, steps = None, x0 = None):
     img = container_creator(total_size, steps)
     mccoors, mcenes, hits_id = get_mchits_info(nevent, df)
     
-    voxel_id, voxel_ener, bins = labelling(img, mccoors, mcenes, hits_id, steps = steps, x0 = x0)
-    coords = histog_to_coord(voxel_id, voxel_ener, bins)
+    voxel_id, voxel_ener, voxel_ratio, bins = labelling(img, mccoors, mcenes, hits_id, steps = steps, x0 = x0)
+    coords = histog_to_coord(voxel_id, voxel_ener, voxel_ratio, bins)
     
-    xcoor, ycoor, zcoor, eners, ids = coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3], coords[:, 4]
-    assert len(xcoor) == len(ycoor) == len(zcoor) == len(eners) == len(ids)
+    xcoor, ycoor, zcoor, eners, ratio, ids = coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3], coords[:, 4], coords[:, 5]
+    assert len(xcoor) == len(ycoor) == len(zcoor) == len(eners) == len(ratio) == len(ids)
     assert all(np.isin(xcoor, bins[0]))
     assert all(np.isin(ycoor, bins[1]))
     assert all(np.isin(zcoor, bins[2]))
     assert all(np.isin(eners, voxel_ener))
+    assert all(np.isin(ratio, voxel_ratio))
     assert all(np.isin(ids, hits_id))

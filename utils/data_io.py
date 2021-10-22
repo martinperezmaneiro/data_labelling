@@ -31,10 +31,10 @@ def get_mchits_info(nevent, df):
     return mccoors, eners, ids
 
 
-def histog_to_coord(id_hist, ener_hist, bins):
+def histog_to_coord(id_hist, ener_hist, ratio_hist, bins):
     '''
-    Takes the histogram (i.e. any voxelization) and returns an array of the voxel coordinates, their energies
-    and their feature
+    Takes the histogram (i.e. any voxelization) and returns an array of the voxel coordinates, their energies and
+    ratio energies, and their feature
     (the feature can be things like particle ID or segmentation labels).
     
     Args:
@@ -44,22 +44,22 @@ def histog_to_coord(id_hist, ener_hist, bins):
         ener_hist: NUMPYARRAY
     D-dimensional histogram with the energy for each voxel.
     
+        ratio_hist: NUMPYARRAY
+    D-dimensional histogram with the ratio of the energy of the most important particle to the total energy, per voxel.
+    
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     
     RETURN:
         coord: NUMPYARRAY
-    Coordinates of the nonzero voxels and their feature, with the structure (D-coords, eners, features).
+    Coordinates of the nonzero voxels and their feature, with the structure (D-coords, eners, ratio, features).
     The array has the length of the number of nonzero elements in the histogram.
 
     '''
-    ndim = ener_hist.ndim
-    ener_nonzero = ener_hist.nonzero()
-    id_nonzero = id_hist.nonzero()
-    
-    for i in range(len(ener_nonzero)):
-        assert (ener_nonzero[i] == id_nonzero[i]).all() #asserting that both histograms are compatible
-    #if they pass the assertion, we can use both variables as the nonzero :D
+    ndim          = ener_hist.ndim
+    ener_nonzero  = ener_hist.nonzero()
+    id_nonzero    = id_hist.nonzero()
+    ratio_nonzero = ratio_hist.nonzero()
     
     nonzero = id_nonzero
     coord   = []
@@ -67,6 +67,7 @@ def histog_to_coord(id_hist, ener_hist, bins):
         coord.append(bins[i][nonzero[i]])
 
     coord.append(ener_hist[nonzero])
+    coord.append(ratio_hist[nonzero])
     coord.append(id_hist[nonzero])
     
     coord = np.array(coord).T
