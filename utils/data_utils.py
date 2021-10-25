@@ -1,5 +1,27 @@
 import numpy as np
 
+def get_event_id(cutnum, ev_num):
+    '''
+    Given a cut number (one of the identifiers of a file) and a event number (i.e. number of the 
+    position of an event inside a file) it returns the equivalent number for the event_id column in the MC data
+    
+    Args:
+        cutnum: INT or STRING
+    Number in the filename.
+    
+        ev_num: INT
+    Desired event position.
+    
+    RETURN:
+        nevent: INT
+    Corresponding event_id to the desired event.
+    
+    '''
+    cutnum = int(cutnum)
+    nevent = cutnum * 2 * 1000000 + cutnum + ev_num
+    return nevent
+
+
 def get_mchits_info(nevent, df):
     '''
     Gets the N coordinates, the energy and the particle_id for MC hits.
