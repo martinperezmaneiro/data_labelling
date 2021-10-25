@@ -1,7 +1,7 @@
 import numpy as np
 from .histogram_utils import *
 
-def labelling(img, mccoors, mcenes, hits_id, bins):
+def voxel_labelling(img, mccoors, mcenes, hits_id, bins):
     '''
     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
     The bins of this histogram will take the value of the ID hits that deposit more energy within them.
