@@ -19,8 +19,8 @@ def histog_to_coord_test(nevent, df, total_size, steps = None, x0 = None):
     voxel_id, voxel_ener, voxel_ratio = labelling(img, mccoors, mcenes, hits_id, bins)
     coords = histog_to_coord(voxel_id, voxel_ener, voxel_ratio, bins)
     
-    xcoor, ycoor, zcoor, eners, ratio, ids = coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3], coords[:, 4], coords[:, 5]
-    assert len(xcoor) == len(ycoor) == len(zcoor) == len(eners) == len(ratio) == len(ids)
+    xcoor, ycoor, zcoor, eners, ratio, ids, binclass = coords.x, coords.y, coords.z, coords.ener, coords.ratio, coords.segclass, coords.binclass
+    assert len(xcoor) == len(ycoor) == len(zcoor) == len(eners) == len(ratio) == len(ids) == len(binclass)
     assert all(np.isin(xcoor, bins[0]))
     assert all(np.isin(ycoor, bins[1]))
     assert all(np.isin(zcoor, bins[2]))
