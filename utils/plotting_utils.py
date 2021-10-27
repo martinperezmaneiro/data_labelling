@@ -1,5 +1,8 @@
-import matplotlib as mpl
+import numpy as np
+
+import matplotlib        as mpl
 import matplotlib.pyplot as plt
+
 from   mpl_toolkits.mplot3d import Axes3D
 
 def plot_3d_histo_hits(hist, bins, cmap = mpl.cm.jet, clabel = 'Energy'):
