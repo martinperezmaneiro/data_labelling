@@ -22,7 +22,7 @@ def get_event_id(cutnum, ev_num):
     return nevent
 
 
-def get_mchits_info(nevent, df):
+def get_mchits_info(nevent, df, identifyer = 'particle_id'):
     '''
     Gets the N coordinates, the energy and the particle_id for MC hits.
     
@@ -49,7 +49,7 @@ def get_mchits_info(nevent, df):
     
     mccoors = np.array([xhits, yhits, zhits]).T 
     eners   = np.array(event['energy'])
-    ids     = np.array(event['particle_id'])
+    ids     = np.array(event[identifyer])
     return mccoors, eners, ids
 
 
