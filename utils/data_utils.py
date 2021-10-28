@@ -68,13 +68,16 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
         return mccoors, eners, ids
 
 
-def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binnum = None):
+def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = None):
     '''
     Takes the histogram (i.e. any voxelization) and returns an array of the voxel coordinates, their energies and
     ratio energies, and their feature
     (the feature can be things like particle ID or segmentation labels).
     
     Args:
+        event_id: INT
+    Number of the event.
+
         id_hist: NUMPYARRAY
     D-dimensional histogram with an ID for each voxel.
     
@@ -87,7 +90,7 @@ def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binnum = None):
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     
-        binclass: INT
+        binum: INT
     Number to identificate the type of event (signal or background)
     
     RETURN:
