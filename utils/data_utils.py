@@ -50,7 +50,7 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
         ids: NUMPYARRAY
     Particle identifyer of each hit. (N,)
 
-        binclassif: INT
+        binnum: INT
     Optionally, if binclass = True, the function will return an identificator
     of the event, whether it is signal or background.
     
@@ -62,8 +62,8 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
     eners    = np.array(event['energy'])
     ids      = np.array(event[identifyer])
     if binclass == True:
-        binclassif = np.array(event['binclass'])[0]
-        return mccoors, eners, ids, binclassif
+        binnum = np.array(event['binclass'])[0]
+        return mccoors, eners, ids, binnum
     else:
         return mccoors, eners, ids
 
