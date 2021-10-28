@@ -68,7 +68,7 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
         return mccoors, eners, ids
 
 
-def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binclass = None):
+def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binnum = None):
     '''
     Takes the histogram (i.e. any voxelization) and returns an array of the voxel coordinates, their energies and
     ratio energies, and their feature
@@ -95,8 +95,8 @@ def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binclass = None):
     Coordinates of the nonzero voxels, their features and binclass, with the structure (D-coords, eners,
     ratio, features, binclass). The df has the length of the number of nonzero elements in the histogram.
     '''
-    
-    column_names  = ['x', 'y', 'z', 'ener', 'ratio', 'segclass', 'binclass']
+
+    column_names  = ['x', 'y', 'z', 'ener', 'ratio', 'segclass']
     ndim          = ener_hist.ndim
     ener_nonzero  = ener_hist.nonzero()
     id_nonzero    = id_hist.nonzero()
@@ -110,7 +110,10 @@ def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binclass = None):
     coord.append(ener_hist[nonzero])
     coord.append(ratio_hist[nonzero])
     coord.append(id_hist[nonzero])
-    coord.append(binclass)
+
+    if binnum != None:
+        column_names.append('binclass')
+        coord.append(binnum)
     
     data = {}
     data['event_id'] = event_id
