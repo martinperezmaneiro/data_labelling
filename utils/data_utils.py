@@ -33,6 +33,12 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
     
         df: DATAFRAME
     Dataframe with the MC hits of a file.
+
+        identifyer: STR
+    Name of the df column that we want to take as id/label for the hits.
+
+        binclass: BOOL
+    Used to decide whether we want the binclass information in the output or we dont.
     
     RETURNS:
         mccoors: NUMPYARRAY
@@ -44,7 +50,7 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
         ids: NUMPYARRAY
     Particle identifyer of each hit. (N,)
 
-        binclass: INT
+        binclassif: INT
     Optionally, if binclass = True, the function will return an identificator
     of the event, whether it is signal or background.
     
@@ -107,6 +113,7 @@ def histog_to_coord(id_hist, ener_hist, ratio_hist, bins, binclass = None):
     coord.append(binclass)
     
     data = {}
+    data['event_id'] = event_id
     for col, value in zip(column_names, coord):
         data[col] = value
     
