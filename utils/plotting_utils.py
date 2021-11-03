@@ -155,6 +155,7 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     nonzeros = np.vstack([hits_digitized[coords[0]].values-xmin+1,
                           hits_digitized[coords[1]].values-ymin+1,
                           hits_digitized[coords[2]].values-zmin+1])
+    nonzeros = nonzeros.astype(int)
     xarr[tuple(nonzeros)] = hits_digitized[value].values
     dim     = xarr.shape
     voxels  = xarr > th
