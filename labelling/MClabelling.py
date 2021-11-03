@@ -3,7 +3,7 @@ import pandas as pd
 
 from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels, voxel_labelling_MC
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC
 
 from invisible_cities.io   import dst_io as dio
 
