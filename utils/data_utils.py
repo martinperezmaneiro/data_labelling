@@ -125,3 +125,61 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     
     df = pd.DataFrame(data)
     return df
+
+
+def calculate_track_distances(tracks_info, hits_label):
+    '''
+    Function to use inside the add_segclass function (because it has the tracks info),
+    after being already assigned the seglabels. If we wanted to do this before those are asigned, 
+    our output would be named hits_part inside the add_segclass function.
+    
+    Args:
+        tracks_info: DATAFRAME
+    Contains the particle information (ids, name, creator process, all its energy...). It is
+    a dataframe created in the add_segclass function.
+        
+        hits_label: DATAFRAME
+    Contains the hits information (ids, name, energy, segclass...). It is the final step inside the
+    add_segclass function (the argument takes the last hits_label in the function). It can be just hits_part,
+    but in our case we will use it with more information.
+        
+    RETURNS:
+        hits_dist: DATAFRAME
+    Same dataframe as hits_label with a new column: the hits distances for the track hits.
+    
+    '''
+    #Delete hits with BUFFER label (otherwise some hits are duplicated)
+    hits_label = hits_label.loc[hits_label.label == 'ACTIVE'] 
+    
+    #Reordes hits with ascendent ID
+    hits_label = hits_label.sort_values(['event_id', 'particle_id', 'hit_id'], ascending=[True, True, True])
+    
+    #Stick the hits_label info to the tracks info to have the hits of the tracks (doesn't have to be hits_label,
+    #can be mchits but in the end we will add to the DF the distances data, so we want the DF with the segclass
+    #already, as it is used at the end of the add_segclass function)
+    hits_tracks = tracks_info[['event_id', 
+                               'particle_id',
+                               'creator_proc']].merge(hits_label[['event_id', 
+                                                                'particle_id', 
+                                                                'hit_id', 
+                                                                'x', 'y', 'z', 
+                                                                'energy']], 
+                                                                 on = ['event_id', 'particle_id'])
+    
+    #Add next row coordinates to new columns to compare, without the first hits
+    hits_tracks[['x1', 'y1', 'z1']] = hits_tracks[['x', 'y', 'z']].shift(-1)
+    
+    #Compute the distance for each hit with the previous one, except from the first hits
+    hits_tracks['dist_hits'] = np.linalg.norm(
+                                                hits_tracks[['x', 'y', 'z']].values 
+                                                - hits_tracks[['x1', 'y1', 'z1']].values, axis=1)
+    
+    hits_tracks = hits_tracks.assign(cumdist = hits_tracks.groupby(['event_id', 'particle_id']).dist_hits.cumsum())
+    
+    #Merge the particle info with the new distance info for the hits in the tracks
+    hits_dist = hits_label.merge(hits_tracks[['event_id', 'particle_id', 'hit_id', 'dist_hits', 'cumdist']],
+                                   how = 'outer',
+                                  on = ['event_id', 'particle_id', 'hit_id'])
+    hits_dist.dist_hits = hits_dist.dist_hits.fillna(0)
+    hits_dist.cumdist   = hits_dist.cumdist.fillna(0)
+    return hits_dist
