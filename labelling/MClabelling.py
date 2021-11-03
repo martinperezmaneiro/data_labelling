@@ -41,7 +41,7 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, identifyer = 'seg
     '''
     #Creo el frame del detector y obtengo sus bins
     img  = container_creator(total_size, voxel_size)
-    bins = bin_creator(detector_frame, steps = voxel_size, x0 = start_bin)
+    bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
 
     #Obtenemos la información de partíuclas y hits de un fichero en concreto
     mcpart = dio.load_dst(directory, 'MC', 'particles') 
