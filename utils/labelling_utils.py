@@ -1,5 +1,142 @@
-import numpy as np
+import numpy  as np
+import pandas as pd
 from .histogram_utils import *
+from .data_utils      import calculate_track_distances
+
+def add_binclass(mchits, mcpart):
+    '''
+    Adds binary class to each hit basing on the existence of an e+ in the event.
+    The two classes are 0 - background, 1 - doublescape
+    
+    Args:
+        mchits: DATAFRAME
+    Contains the MC hits information of every event in a file.
+    
+        mcpart: DATAFRAME
+    Contains the MC particles information for every event in a file.
+    
+    RETURNS:
+        mchits_binclass: DATAFRAME
+    The mchits df with a new column containing the binclass.
+    
+    '''
+    class_label = mcpart.groupby('event_id').particle_name.apply(lambda x:sum(x=='e+')).astype(int)
+    class_label.name = 'binclass'
+
+    mchits_binclass  = pd.merge(mchits, class_label, on = 'event_id')
+    return mchits_binclass
+
+def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob':3}): 
+    '''
+    Add segmentation class to each hit in the file, after being filled with the binclass.
+    The classes are 1 - rest, 2 - track, 3 - blob
+    It also computes the distance between the hits of the tracks (we take advantage of the tracks info 
+    extraction being done here to perform this calculation)
+    
+    Args:
+        mchits: DATAFRAME
+    Contains the hits information plus the binclass. It is the output of the add_binclass() function.
+    
+        mcpart: DATAFRAME
+    Contains the particle information.
+    
+        delta_e: FLOAT
+    Energy threshold for the last hits of a track to become blob class.
+    
+        label_dict: DICTIONARY
+    Has the correspondence for the class names.
+    
+    RETURN:
+        hits_label: DATAFRAME
+    Contains the hits information with event_id, coordinates, energy, segclass, binclass
+    and hits distances of the tracks (also creator and particle to get the traces and do the bragg peak study)
+    
+    '''
+    #Unimos los df de hits y particulas, haciendo que a cada hit de mchits se le añada la información 
+    #de la partícula que viene en mcpart
+    hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id']) 
+    
+    #Agrupamos todos los hits de cada partícula de cada evento y sumamos su energía para obtener la
+    #energía depositada por cada partícula (más otra información)
+    per_part_info = hits_part.groupby(['event_id', 
+                                       'particle_id', 
+                                       'particle_name', 
+                                       'creator_proc']).agg({'energy':[('energy', sum)]})
+    per_part_info.columns = per_part_info.columns.get_level_values(1)
+    per_part_info.reset_index(inplace=True)
+    
+    #Seleccionamos los eventos de double scape y background
+    doublescape_event_ids = per_part_info[per_part_info.particle_name == 'e+'].event_id.unique()
+    background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), doublescape_event_ids)
+    
+    #Seleccionamos las trazas de cada evento
+    #Para double scape es sencillo, cogemos los e+e- cuyo proceso de creación sea conv, tendremos 2 trazas/evento
+    tracks_dsc = per_part_info[(per_part_info.event_id.isin(doublescape_event_ids)) &\
+                                   (per_part_info.particle_name.isin(['e+', 'e-']) &\
+                                   (per_part_info.creator_proc == 'conv'))]
+    
+    #Para background cogemos los electrones que fueron creados por compton, y de ellos escogemos el más energético
+    #Tendremos 1 traza/evento
+    tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
+                                   (per_part_info.particle_name == 'e-') &\
+                                   (per_part_info.creator_proc  == 'compt')]
+    
+    tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').energy.idxmax()] #seleccionamos el más energético
+    
+    #Unimos la información de todas las trazas y le añadimos la etiqueta track en una nueva columna segclass
+    tracks_info = pd.concat([tracks_bkg, tracks_dsc]).sort_values('event_id')
+    tracks_info = tracks_info.assign(segclass = label_dict['track'])
+    
+    #Añadimos al df de información de hits y partículas la nueva columna de etiquetas de voxel
+    hits_part = hits_part.reset_index()
+    hits_label = hits_part.merge(tracks_info[['event_id', 'particle_id', 'segclass']], 
+                                 how='outer', on=['event_id', 'particle_id'])
+    
+    #Todas las partículas que ahora en segclass no tienen valor se les adjudica la etiqueta rest
+    hits_label.segclass = hits_label.segclass.fillna(label_dict['rest']) 
+    
+    #Ordeno los hits en orden descendente y hago suma cumulativa de energías de hit en una columna, cumenergy
+    hits_label = hits_label.sort_values(['event_id', 'particle_id', 'hit_id'], ascending=[True, True, False])
+    hits_label = hits_label.assign(cumenergy = hits_label.groupby(['event_id', 'particle_id']).energy.cumsum())
+    
+    #Escojo los hits que de forma acumulada sumen menos de delta_e energía
+    blob_mask = (hits_label.cumenergy < delta_e)
+    
+    #Ahora, dentro de todos los hits, escojo los últimos hits de clase track que sumen menos de delta_e
+    hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
+    
+    #Calculo la distancia entre hits de las trazas y lo añado al df de información que tenía
+    hits_label_dist = calculate_track_distances(tracks_info, hits_label)
+    
+    #Escojo solo la información que me interesa
+    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    
+    return hits_label_dist
+
+
+def add_hits_labels_MC(mchits, mcpart, blob_energy_th = 0.4):
+    '''
+    Add binclass and segclass to the raw MC hits dataframe.
+    
+    Args:
+        mchits: DATAFRAME
+    Contains the MC hits information of every event in a file.
+    
+        mcpart: DATAFRAME
+    Contains the MC particles information for every event in a file.
+    
+        blob_energy_th: FLOAT
+    Energy threshold for the last hits of a track to become blob class.
+    
+    RETURNS:
+        hits_clf_seg: DATAFRAME
+    The mchits df with the binclass and segclass.    
+    
+    '''
+    hits_clf = add_binclass(mchits, mcpart)
+    hits_clf_seg = add_segclass(hits_clf, mcpart, blob_energy_th)
+    return hits_clf_seg
+
 
 def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     '''
