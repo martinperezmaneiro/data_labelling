@@ -3,12 +3,12 @@ from .labelling_utils import *
 from .histogram_utils import container_creator
 from .data_io         import get_mchits_info
 
-def voxel_labelling_test(nevent, df, total_size, steps = None, x0 = None):
+def voxel_labelling_MC_test(nevent, df, total_size, steps = None, x0 = None):
     img  = container_creator(total_size, steps)
     bins = bin_creator(img, steps = steps, x0 = x0)
     mccoors, mcenes, hits_id = get_mchits_info(nevent, df)
     
-    voxel_id, voxel_ener, voxel_portion = labelling(img, mccoors, mcenes, hits_id, bins)
+    voxel_id, voxel_ener, voxel_portion = voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins)
     
     id_nonzero   = voxel_id.nonzero()
     ener_nonzero = voxel_ener.nonzero()

@@ -1,10 +1,11 @@
 import numpy as np
 from .histogram_utils import *
 
-def voxel_labelling(img, mccoors, mcenes, hits_id, bins):
+def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     '''
     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
     The bins of this histogram will take the value of the ID hits that deposit more energy within them.
+    So, this function takes mainly Monte Carlo hits with a defined segmentation class and voxelizes them.
     
     i.e., in a voxel with several hits, the function will label the voxel as the kind of hit that layed more energy,
     regardless of the number of hits. For a 8 hit voxel:
