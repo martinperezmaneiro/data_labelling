@@ -149,11 +149,11 @@ def frame_reductor(hits_coord, detector_bins, loose):
     steps = [abs(bins[0] - bins[1]) for bins in detector_bins]
     extremes = [[coor.min(), coor.max()] for coor in hits_coord.T]
     extreme_bins = [[closest_number_bins(ex[0], bins, step, True), closest_number_bins(ex[1], bins, step, False)] 
-    for ex, bins, step in zip(extremes, detector_bins, steps)]
+                    for ex, bins, step in zip(extremes, detector_bins, steps)]
     
     x0 = [x[0] - loose * step for x, step in zip(extreme_bins, steps)]
     reduced_size = [abs(ex_bin[0] - ex_bin[1]) + 2 * loose * step 
-                         for ex_bin, step in zip(extreme_bins, steps)]
+                    for ex_bin, step in zip(extreme_bins, steps)]
     reduced_frame = container_creator(reduced_size, steps)
     reduced_bins = bin_creator(reduced_frame, steps = steps, x0 = x0)
     
