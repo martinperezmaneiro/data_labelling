@@ -173,7 +173,11 @@ def calculate_track_distances(tracks_info, hits_label):
     hits_tracks['dist_hits'] = np.linalg.norm(
                                                 hits_tracks[['x', 'y', 'z']].values 
                                                 - hits_tracks[['x1', 'y1', 'z1']].values, axis=1)
-    
+
+    #The first hits distances are set to 0 as we don't want to be compared with other events
+    hits_tracks.loc[hits_tracks.hit_id == 0, 'dist_hits'] = 0
+
+    #We compute the cumulative sum    
     hits_tracks = hits_tracks.assign(cumdist = hits_tracks.groupby(['event_id', 'particle_id']).dist_hits.cumsum())
     
     #Merge the particle info with the new distance info for the hits in the tracks
