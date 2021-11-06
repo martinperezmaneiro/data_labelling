@@ -26,7 +26,7 @@ def add_binclass(mchits, mcpart):
     mchits_binclass  = pd.merge(mchits, class_label, on = 'event_id')
     return mchits_binclass
 
-def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob':3}): 
+def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={'rest':1, 'track':2, 'blob':3}): 
     '''
     Add segmentation class to each hit in the file, after being filled with the binclass.
     The classes are 1 - rest, 2 - track, 3 - blob
@@ -39,6 +39,10 @@ def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob
     
         mcpart: DATAFRAME
     Contains the particle information.
+    
+        delta_loss: FLOAT
+    Energy loss threshold in percentage (respect to the total track energy) for the last hits of a 
+    track to become blob class.
     
         delta_e: FLOAT
     Energy threshold for the last hits of a track to become blob class.
@@ -61,7 +65,7 @@ def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob
     per_part_info = hits_part.groupby(['event_id', 
                                        'particle_id', 
                                        'particle_name', 
-                                       'creator_proc']).agg({'energy':[('energy', sum)]})
+                                       'creator_proc']).agg({'energy':[('track_ener', sum)]})
     per_part_info.columns = per_part_info.columns.get_level_values(1)
     per_part_info.reset_index(inplace=True)
     
@@ -81,15 +85,15 @@ def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob
                                    (per_part_info.particle_name == 'e-') &\
                                    (per_part_info.creator_proc  == 'compt')]
     
-    tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').energy.idxmax()] #seleccionamos el más energético
+    tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
     
     #Unimos la información de todas las trazas y le añadimos la etiqueta track en una nueva columna segclass
     tracks_info = pd.concat([tracks_bkg, tracks_dsc]).sort_values('event_id')
     tracks_info = tracks_info.assign(segclass = label_dict['track'])
     
     #Añadimos al df de información de hits y partículas la nueva columna de etiquetas de voxel
-    hits_part = hits_part.reset_index()
-    hits_label = hits_part.merge(tracks_info[['event_id', 'particle_id', 'segclass']], 
+    hits_part  = hits_part.reset_index()
+    hits_label = hits_part.merge(tracks_info[['event_id', 'particle_id', 'track_ener', 'segclass']], 
                                  how='outer', on=['event_id', 'particle_id'])
     
     #Todas las partículas que ahora en segclass no tienen valor se les adjudica la etiqueta rest
@@ -99,9 +103,21 @@ def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob
     hits_label = hits_label.sort_values(['event_id', 'particle_id', 'hit_id'], ascending=[True, True, False])
     hits_label = hits_label.assign(cumenergy = hits_label.groupby(['event_id', 'particle_id']).energy.cumsum())
     
-    #Escojo los hits que de forma acumulada sumen menos de delta_e energía
-    blob_mask = (hits_label.cumenergy < delta_e)
+    #Creo la columna de porcentaje de energía perdida
+    hits_label = hits_label.assign(lost_ener = (hits_label.cumenergy / hits_label.track_ener).fillna(0))
     
+    if delta_e is not None:
+        #Escojo los hits que de forma acumulada sumen menos de delta_e energía
+        blob_mask = (hits_label.cumenergy < delta_e)
+    
+    if delta_loss is not None:
+        #Escojo los hits según hayan perdido un porcentaje determinado de energía de su total
+        #Primero calculo la energía total de cada traza
+        blob_mask = (hits_label.lost_ener < delta_loss)
+    
+    if delta_e == None and delta_loss == None:
+        raise ValueError('Neither delta_e nor delta_loss has been given a value to define the blobs')
+        
     #Ahora, dentro de todos los hits, escojo los últimos hits de clase track que sumen menos de delta_e
     hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
     
@@ -113,8 +129,7 @@ def add_segclass(mchits, mcpart, delta_e, label_dict={'rest':1, 'track':2, 'blob
     
     return hits_label_dist
 
-
-def add_hits_labels_MC(mchits, mcpart, blob_energy_th = 0.4):
+def add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = None, blob_ener_th = None):
     '''
     Add binclass and segclass to the raw MC hits dataframe.
     
@@ -134,7 +149,7 @@ def add_hits_labels_MC(mchits, mcpart, blob_energy_th = 0.4):
     
     '''
     hits_clf = add_binclass(mchits, mcpart)
-    hits_clf_seg = add_segclass(hits_clf, mcpart, blob_energy_th)
+    hits_clf_seg = add_segclass(hits_clf, mcpart, delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
     return hits_clf_seg
 
 
