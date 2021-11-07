@@ -170,9 +170,8 @@ def calculate_track_distances(tracks_info, hits_label):
     hits_tracks[['x1', 'y1', 'z1']] = hits_tracks[['x', 'y', 'z']].shift(1)
     
     #Compute the distance for each hit with the previous one, except from the first hits
-    hits_tracks['dist_hits'] = np.linalg.norm(
-                                                hits_tracks[['x', 'y', 'z']].values 
-                                                - hits_tracks[['x1', 'y1', 'z1']].values, axis=1)
+    hits_tracks['dist_hits'] = np.linalg.norm(hits_tracks[['x', 'y', 'z']].values 
+                                              - hits_tracks[['x1', 'y1', 'z1']].values, axis=1)
 
     #The first hits distances are set to 0 as we don't want to be compared with other events
     hits_tracks.loc[hits_tracks.hit_id == 0, 'dist_hits'] = 0
@@ -182,8 +181,8 @@ def calculate_track_distances(tracks_info, hits_label):
     
     #Merge the particle info with the new distance info for the hits in the tracks
     hits_dist = hits_label.merge(hits_tracks[['event_id', 'particle_id', 'hit_id', 'dist_hits', 'cumdist']],
-                                   how = 'outer',
-                                  on = ['event_id', 'particle_id', 'hit_id'])
+                                 how = 'outer',
+                                 on = ['event_id', 'particle_id', 'hit_id'])
     hits_dist.dist_hits = hits_dist.dist_hits.fillna(0)
     hits_dist.cumdist   = hits_dist.cumdist.fillna(0)
     return hits_dist
