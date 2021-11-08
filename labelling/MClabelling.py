@@ -68,6 +68,13 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
         voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, bins, binnum = binclass))
     
     voxelization_df.reset_index()
+    
+    #Con esto reducimos los voxeles a meros puntos por sencillez, ya que nos deshacemos del tamaño de voxel
+    #(el tamaño se tuvo ya en cuenta en la voxelizacion y por tanto ahora esto es indiferente)
+    for coord, size in zip(['x', 'y', 'z'], voxel_size):
+        voxelization_df[coord] = voxelization_df[coord] / size
+
+    #Hacemos enteras las coord y labels
     for colname in voxelization_df.columns:
         voxelization_df[colname] = pd.to_numeric(voxelization_df[colname], downcast = 'integer')
     
