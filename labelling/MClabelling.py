@@ -7,7 +7,7 @@ from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, identifyer = 'segclass', blob_energy_th = 0.4):
+def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th = None, blob_ener_th = None):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy 
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling. 
@@ -25,13 +25,13 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, identifyer = 'seg
         start_bin: TUPLE
     Contains the first voxel position for each coordinate.
         
-        identifyer: STR
-    Desired feature to perform the voxel labelling. It will be segclass, but also particle_id for some reason.
-    
         binclass: BOOL
     Used to decide whether we want the binclass information in the output or we dont.
     
-        blob_energy_th: FLOAT
+        blob_ener_loss_th: FLOAT
+    Energy loss percentage of total track energy for the last hits that establishes a threshold for the blob class.
+
+        blob_ener_th: FLOAT
     Energy threshold for the last hits of a track to become blob class.
     
     RETURNS:
@@ -48,7 +48,7 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, identifyer = 'seg
     mchits = dio.load_dst(directory, 'MC', 'hits') 
     
     #Etiquetamos los hits 
-    labelled_hits = add_hits_labels_MC(mchits, mcpart, blob_energy_th = blob_energy_th)
+    labelled_hits = add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = blob_ener_loss_th, blob_ener_th = blob_ener_th)
     
     #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
     voxelization_df = pd.DataFrame()
@@ -68,5 +68,7 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, identifyer = 'seg
         voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, bins, binnum = binclass))
     
     voxelization_df.reset_index()
+    for colname in voxelization_df.columns:
+        voxelization_df[colname] = pd.to_numeric(voxelization_df[colname], downcast = 'integer')
     
     return voxelization_df
