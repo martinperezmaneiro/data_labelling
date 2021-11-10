@@ -141,7 +141,7 @@ def plot_projections(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.
     plt.show()
 
     
-def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, edgecolor=None, cmap=mpl.cm.jet):
+def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap=mpl.cm.jet, opacity = 1):
 
     xmin, xmax = hits_digitized[coords[0]].min(), hits_digitized[coords[0]].max()
     ymin, ymax = hits_digitized[coords[1]].min(), hits_digitized[coords[1]].max()
@@ -170,7 +170,7 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     colors = np.asarray(np.vectorize(m.to_rgba)(xarr))
     colors = np.rollaxis(colors, 0, 4)
 
-    ax.voxels(voxels, facecolors=colors, edgecolor=edgecolor)
+    ax.voxels(voxels, facecolors=colors * opacity, edgecolor=edgecolor, linewidth = linewidth)
     cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap, norm=norm, orientation='vertical')
 
     ax.set_xlabel('X ')
