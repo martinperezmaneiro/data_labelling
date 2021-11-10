@@ -193,7 +193,8 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     D-dimensional histogram with the energies of the voxels.
     
         mc_hit_portion: NUMPYARRAY
-    D-dimensional histogram with the ratio of the energy of the most important particle to the total energy, per voxel.
+    D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is 
+    defined by its id) to the total energy, per voxel.
     
     '''
     

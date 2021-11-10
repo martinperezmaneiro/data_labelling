@@ -85,7 +85,8 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     D-dimensional histogram with the energy for each voxel.
     
         ratio_hist: NUMPYARRAY
-    D-dimensional histogram with the ratio of the energy of the most important particle to the total energy, per voxel.
+    D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is 
+    defined by its id) to the total energy, per voxel.
     
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
