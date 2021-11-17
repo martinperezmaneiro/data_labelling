@@ -103,20 +103,23 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     ratio, features, binclass). The df has the length of the number of nonzero elements in the histogram.
     '''
 
-    column_names  = ['x', 'y', 'z', 'ener', 'ratio', id_name]
+    column_names  = ['x', 'y', 'z', 'ener']
     ndim          = ener_hist.ndim
-    ener_nonzero  = ener_hist.nonzero()
-    id_nonzero    = id_hist.nonzero()
-    ratio_nonzero = ratio_hist.nonzero()
-    
-    nonzero = id_nonzero
+
+    nonzero = ener_hist.nonzero()
     coord   = []
     for i in range(ndim):
         coord.append(bins[i][nonzero[i]])
 
     coord.append(ener_hist[nonzero])
-    coord.append(ratio_hist[nonzero])
-    coord.append(id_hist[nonzero])
+    
+    if type(ratio_hist) != type(None):
+        column_names.append('ratio')
+        coord.append(ratio_hist[nonzero])
+        
+    if type(id_hist) != type(None):
+        column_names.append(id_name)
+        coord.append(id_hist[nonzero])
 
     if binnum != None:
         column_names.append('binclass')
