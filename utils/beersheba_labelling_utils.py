@@ -93,7 +93,7 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     return voxel_df
 
 
-def label_leftover_voxels_per_event(merged_voxels):
+def relabel_outside_voxels(merged_voxels):
     '''
     Function to remove the leftover voxeles (those MC with no beersheba correspondance) and use them to label
     their nearest(s) empty beersheba voxel(s). It does it per event, so will be used inside a bigger function 
@@ -190,37 +190,53 @@ def label_leftover_voxels_per_event(merged_voxels):
         return merged_voxels
 
 
-def relabelling_outside_voxels(merged_voxels):
+
+def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
     '''
     Function that does the relabelling to a complete file, i.e., it goes through all the events in each file 
     applying the label_leftover_voxels_per_event to each event
     
     Args:
-        merged_voxels: DATAFRAME
-    This DF contains MC labelled voxels merged with the beersheba voxels, for several events.
+        labelled_voxels_MC: DATAFRAME
+    This DF contains MC labelled voxels for a file, i.e. the output of labelling_MC function.
+    
+        beersh_voxels: DATAFRAME
+    Contains the beersheba voxels for a file, i.e. the output of the voxelize_beersh function
     
     RETURNS:
         merged_voxels: DATAFRAME
     Contains just the beersheba voxels, without the outside MC voxels, and with a relabelling done for those
     voxels, for several events.
     '''
-    length = len(merged_voxels)
-    for event_id, df in merged_voxels.groupby('event_id'):
-        no_out_voxels_df = label_leftover_voxels_per_event(df)
-        merged_voxels = merged_voxels.merge(no_out_voxels_df[['event_id', 'x', 'y', 'z', 'segclass']], 
-                                            on = ['event_id', 'x', 'y', 'z'], how = 'left')
-        merged_voxels['segclass'] = merged_voxels['segclass_x'].fillna(merged_voxels['segclass_y'])
-        merged_voxels = merged_voxels.drop(['segclass_x', 'segclass_y'], axis = 1)
+    merged_voxels = beersh_voxels.merge(labelled_voxels_MC[['event_id', 
+                                                            'x', 
+                                                            'y', 
+                                                            'z', 
+                                                            'ener', 
+                                                            'ratio', 
+                                                            'binclass', 
+                                                            'segclass']], 
+                                        on = ['event_id', 'x', 'y', 'z', 'binclass'], 
+                                        how = 'outer')
     
-        #Comprobamos que la función de eliminar los voxeles no hace cosas raras al mergear (esto si tal mirar 
-        #de poner luego en un test digo yo)
-        if len(merged_voxels) != length:
-            print('En el evento {} aumentan {} voxeles en merged_voxels, cuando no deberían'.format(event_id, len(merged_voxels) - length))
-            length = len(merged_voxels)
+    if relabel == True:
+        length = len(merged_voxels)
+        for event_id, df in merged_voxels.groupby('event_id'):
+            no_out_voxels_df = relabel_outside_voxels(df)
+            merged_voxels = merged_voxels.merge(no_out_voxels_df[['event_id', 'x', 'y', 'z', 'segclass']], 
+                                                on = ['event_id', 'x', 'y', 'z'], how = 'left')
+            merged_voxels['segclass'] = merged_voxels['segclass_x'].fillna(merged_voxels['segclass_y'])
+            merged_voxels = merged_voxels.drop(['segclass_x', 'segclass_y'], axis = 1)
+    
+            #Comprobamos que la función de eliminar los voxeles no hace cosas raras al mergear (esto si tal mirar 
+            #de poner luego en un test digo yo)
+            if len(merged_voxels) != length:
+                print('En el evento {} aumentan {} voxeles en merged_voxels, cuando no deberían'.format(event_id, len(merged_voxels) - length))
+                length = len(merged_voxels)
             
-        prueba = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
-        if prueba[prueba.event_id == event_id].reset_index(drop = True).equals(no_out_voxels_df.reset_index(drop = True)) != True:
-            print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
+            prueba = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+            if prueba[prueba.event_id == event_id].reset_index(drop = True).equals(no_out_voxels_df.reset_index(drop = True)) != True:
+                print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
             
-    merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+        merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
     return merged_voxels
