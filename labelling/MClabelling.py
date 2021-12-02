@@ -78,4 +78,4 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
     for colname in voxelization_df.columns:
         voxelization_df[colname] = pd.to_numeric(voxelization_df[colname], downcast = 'integer')
     
-    return voxelization_df
+    return voxelization_df, labelled_hits
