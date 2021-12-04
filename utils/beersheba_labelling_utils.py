@@ -240,3 +240,249 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
             
         merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
     return merged_voxels
+
+
+def scale_bins(bins, voxel_size):
+    '''
+    Scales the detector bins to unitary bins. If the input are already unitary bins, it does nothing.
+    
+    Args:
+        bins: LIST OF ARRAYS
+    Usually, detector bins to be normalized.
+    
+        voxel_size: TUPLE
+    Size of the voxels in each dimension.
+    
+    RETURNS:
+        bins: LIST OF ARRAYS
+    Returns the unitary bins.
+    '''
+    size = [abs(b[1] - b[0]) for b in bins]
+    is_scaled = [True if s == 1 else False for s in size]
+    if not np.array(is_scaled).any():
+        bins = [b / s for b, s in zip(bins, voxel_size)]
+    return bins
+
+def assign_nlabels(label_dict = {'rest':1, 'track':2, 'blob':3}, 
+                   corresp_label_dict = {'nrest':'rest', 'ntrack':'track', 'nblob':'blob'}):
+    '''
+    Creates a dictionary that links the pure segclasses with their neighbour ones.
+    
+    Args:
+        label_dict: DICT
+    Has the original class names with their corresponding number.
+    
+        corresp_label_dict: DICT
+    Has the correspondance between the neighbour class names and the pure class names.
+    
+    RETURNS:
+        nlabel_dict: DICT
+    Has the correspondance between pure seclass number and neighbour segclass number.
+    '''
+    
+    nlabel_dict = {}
+    for nclass in corresp_label_dict.keys():
+        label = label_dict[corresp_label_dict[nclass]]
+        nlabel_dict[label] = label + len(label_dict) #le sumo el numero de etiquetas que hay... que obviamente son 3 para nosotros
+    return nlabel_dict
+
+
+def moves(ndim):
+    '''
+    Function that returns all the movements from one voxel to its neighbours (we consider a neighbour if a part of
+    the voxel touches another, i.e. for 3dim faces are first neighbours, edges are second and vertex are third, and
+    we consider them all).
+    
+    Args:
+        ndim: INT
+    Number of dimensions of the movements.
+    
+    RETURNS:
+        vs: LIST
+    Contains all the posible unitary movements to the neighbours.
+    '''
+    u0 = np.zeros(ndim)
+    def u1(idim):
+        ui1 = np.zeros(ndim)
+        ui1[idim] = 1
+        return ui1.astype(int)
+
+    vs = (u0, u1(0), -1 * u1(0))
+    for idim in range(1, ndim):
+        us = (u0, u1(idim), -1 * u1(idim))
+        vs = [(vi + ui).astype(int) for vi in vs for ui in us]
+    vs.pop(0)
+
+    return vs
+
+
+def count_neighbours(voxel_segclass, coords, bins):
+    '''
+    Counts the number of neighbours of each class a voxel has. The neighbour count is performed by moving all 
+    the voxels a certain position. For each class, the function will make N movements to all the neighbours 
+    (26 for 3 dimensional data), in each movement it performs an histogram to count. We add the histograms 
+    corresponding to the same class in each step, and finally select the desired voxels (only those that exist 
+    in the event, i.e. that have a beersheba energy associated).
+    
+    Args:
+        voxel_segclass: PANDAS SERIES
+    Segclass column of the event dataframe to know which classes are going to participate in the counting.
+    
+        coords: NUMPY ARRAY
+    Has the coordinates of the beersheba voxels. It's shaped as (N, d), with N the number of voxels and d the 
+    dimensions.
+    
+        bins: LIST OF ARRAYS
+    Normalized bins for each dimension.
+    
+    RETURNS:
+        nbour_counts: LIST
+    Has the number of neighbour voxels per class one voxel has. It is a list of arrays, where each array 
+    corresponds to a class (the first position is the class 1 - rest, etc).
+    '''
+    
+    model_histo, _ = np.histogramdd(coords, bins)
+    #This is like creating a mask for the positions of the voxels, for the count
+    voxel_positions = model_histo.nonzero() 
+    #Take the segclass values, deleting NaN
+    seg_unique = voxel_segclass.unique()
+    seg_unique = np.sort(seg_unique[~np.isnan(seg_unique)])
+    #List to append neighbour counts for each segclass
+    nbour_counts = []
+    #We need to use all the classes in the range avaliable, otherwise our algorithm will mix classes (because 
+    #we use positions of the counts to recognize the class)
+    for seg in range(1, int(max(seg_unique)) + 1):
+        #Create an empty histogram for each class to fill
+        counts = np.zeros(model_histo.shape)
+        #Create the mask for the specific class
+        segclass_mask = voxel_segclass == seg
+        #Now we select the coords that have that specific class 
+        selected_coor = coords[segclass_mask]
+        ndim = len(bins)
+        for move in moves(ndim):
+            #We use norm coordinates, so it is not necessary to add the step to move the coordinates
+            coors_next     = selected_coor + move
+            #We count how many of one specific segclass are in that move
+            counts_next, _ = np.histogramdd(coors_next, bins)
+            #We add to the empty histogram the counts, in each step will be adding for a new move...
+            counts         = counts + counts_next
+        #Finally we select the values of the beersheba coordinates (because when moving we filled non existing voxels)
+        nbour_counts.append(counts[voxel_positions])
+    return nbour_counts
+
+
+def fill_df_with_nbours_ordered(mc_beersh_event, nbour_counts, nlabel_dict):
+    '''
+    This function takes the neighbour counts scores for each empty voxel and assigns them their correspondent 
+    neighbour class. If one voxel has no scores, it's ignored and remains empty (will be filled afterwards,
+    looping on this function). If two classes are tied, the function chooses the most important one.
+    (blob > track > rest).
+    
+    Args:
+        mc_beersh_event: DATAFRAME
+    Contains one event from the merge_MC_beersh_voxels function output.
+          
+        nbour_counts: LIST
+    Output of the count_neighbours function, which has the number of neighbour voxels per class one voxel has.
+    It is a list of arrays, where each array corresponds to a class (the first position is the class 1 - rest, etc).
+    Each array has the counts of the number of neighbours for every beersheba voxel.
+        
+        nlabel_dict: DICT
+    Contains the segclass correspondances between the main and the neighbour class.
+        
+    RETURNS:
+        mc_beersh_event: DATAFRAME
+    The event's segclass column is filled with the desired classes. It has the same structure as the input one.
+    '''
+    
+    #We take the segclass column
+    voxel_segclass = mc_beersh_event.segclass
+    #Know whick of the rows in the DF are to fill
+    null_mask = voxel_segclass.isnull()
+    #Score for each segclass (number of neighbors that a voxel has of each class)
+    class_scores = np.array(nbour_counts).T[null_mask]  
+    assert len(class_scores) == sum(null_mask), 'Something failed in the count_neighbours function'
+        
+    empty_positions = [i for i, score in enumerate(class_scores) if (score == np.zeros(len(score))).all()]
+    final_val = len(class_scores) - len(empty_positions) #to check things
+        
+    #Deleting the ones empty
+    class_scores = np.delete(class_scores, empty_positions, axis = 0)
+    assert final_val == len(class_scores), 'Something failed with the empty count voxels'
+        
+    #Index of the null segclass values (the ones with true in the mask ofcourse)
+    null_index = voxel_segclass[null_mask].index 
+    
+    #Indexes of the empty voxels that had no neighbour with class
+    empty_index = null_index[empty_positions]
+    
+    #Changing the mask to ignore the ones empty
+    null_mask[empty_index] = ~null_mask[empty_index]
+    assert len(class_scores) == sum(null_mask), 'Something failed excluding empty values of the dataframe'
+        
+    #Take the position of the most counted segclass; in case of ties, it chooses the most important (3>2>1)
+    class_values = [np.where(score == score.max())[0].max() + 1 for score in class_scores]
+    
+    #Transforms the pure classes into neighbour classes; if it's already a neighbour it stays this way
+    nclass_values = [nlabel_dict[classv] if np.isin(classv, list(nlabel_dict.keys())) else classv for classv in class_values]
+        
+    #DF with the new labelled voxels, with the same indexes as the original DF
+    nclass_df = pd.DataFrame({'segclass':nclass_values}, index = voxel_segclass[null_mask].index)
+    
+    #Join DF and do cleaning
+    mc_beersh_event = mc_beersh_event.merge(nclass_df, left_index=True, right_index=True, how = 'outer')
+    mc_beersh_event['segclass'] = mc_beersh_event['segclass_y'].fillna(mc_beersh_event['segclass_x'])
+    mc_beersh_event = mc_beersh_event.drop(['segclass_x', 'segclass_y'], axis = 1)
+    assert sum(mc_beersh_event.segclass.isnull()) == len(empty_positions), 'Something failed excluding the empy voxels'
+    
+    return mc_beersh_event, empty_index
+
+
+def label_neighbours_ordered(mc_beersh_event, bins, voxel_size, nlabel_dict, ghost_class = 7):
+    '''
+    Takes an event of beersheba primary labelled (only with the main segclass) and assigns neighbour 
+    classes to the empty voxels. It uses the fill_df_with_nbours_ordered function, that particularly fills
+    the missing voxels based just on the order they appear in the neighbour algorythm.
+    
+    Args:
+        mc_beersh_event: DATAFRAME
+    Contains one event from the merge_MC_beersh_voxels function output.
+    
+        bins: LIST OF ARRAYS
+    Detector bins, although they will be scaled to unity bins to work in this function.
+        
+        voxel_size: TUPLE
+    Size in each dimension for the voxels.    
+        
+        nlabel_dict: DICT
+    Contains the segclass correspondances between the main and the neighbour class.
+        
+    RETURNS
+        mc_beersh_event: DATAFRAME
+    The event's segclass column is filled with the desired classes. It has the same structure as the input one.
+    '''
+    
+    coords = np.array(mc_beersh_event[['x', 'y', 'z']])
+    bins = scale_bins(bins, voxel_size) 
+    
+    voxel_segclass = mc_beersh_event.segclass
+    empty_index = []
+    while sum(voxel_segclass.isnull()) != 0:
+        nbour_counts    = count_neighbours(voxel_segclass, coords, bins)
+        mc_beersh_event, empty_index_new = fill_df_with_nbours_ordered(mc_beersh_event, nbour_counts, nlabel_dict)
+        
+        #If the previous empty voxels were the same as the current ones, we will label them as ghost class
+        #We check that the lists have the same lenght because if they don't, the comparison of values will
+        #return an error
+        if len(empty_index) == len(empty_index_new) and (empty_index == empty_index_new).all():
+            mc_beersh_event.segclass = mc_beersh_event.segclass.replace(to_replace = np.nan, value = ghost_class)
+                
+        #Update the condition and the list of empty index
+        voxel_segclass  = mc_beersh_event.segclass
+        empty_index = empty_index_new
+        
+    #Turn into an integer
+    mc_beersh_event.segclass = pd.to_numeric(mc_beersh_event.segclass, downcast = 'integer')
+    return mc_beersh_event
+
+
