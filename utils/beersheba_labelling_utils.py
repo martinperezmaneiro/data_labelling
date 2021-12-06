@@ -194,7 +194,7 @@ def relabel_outside_voxels(merged_voxels):
 def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
     '''
     Function that does the relabelling to a complete file, i.e., it goes through all the events in each file 
-    applying the label_leftover_voxels_per_event to each event
+    applying the relabel_outside_voxels to each event
     
     Args:
         labelled_voxels_MC: DATAFRAME
