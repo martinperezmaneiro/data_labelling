@@ -203,3 +203,371 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     cb.set_label (value)
 
     plt.show()
+
+
+def plot_label_creator(min_vals, max_vals, voxel_size, affluence):
+    '''
+    Function to create ticks and its labels to plot an event.
+    
+    Args:
+        min_vals: TUPLE
+    Contains the minimum values for each coordinate of the position of all the voxels in an event.
+    
+        max_vals: TUPLE
+    Contains the maximum values for each coordinate of the position of all the voxels in an event.
+    
+        voxel_size: TUPLE
+    Contains the voxel size of the detector for each coordinate. Used to create the labels.
+    
+        affluence: TUPLE
+    Separation parameter for the labels in each coordinate. If 1, labels will be plotted for each voxel step, 
+    if 2, they will be plotted each 2 voxel steps, etc.
+    
+    RETURNS:
+        labels: LIST
+    List of arrays (one per coord.) with the labels we want to use (those consistent with the voxel size in
+    each coordinate).
+    
+        ticks: LIST
+    List of arrays (one per coord.) with the ticks that we want to label.
+    '''
+    labels = []
+    ticks  = []
+    for mini, maxi, size, aff in zip(min_vals, max_vals, voxel_size, affluence):
+        labels.append(np.arange((mini - mini) * size, (maxi - mini + 2) * size, size * aff))
+        ticks.append(np.arange(0, maxi - mini + 2, aff))
+    return labels, ticks
+
+
+#another useful colorbars: viridis, cividis....
+def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [1,1], ghost_plot = False):
+    '''
+    This function takes all the labelled voxels (the output of one of the label_neighbours function) and plots them
+    separately if they are MC voxeles (beersheba voxels that were coincident with those of their MC true event and 
+    those that also were assigned with the merge_MC_beersh_voxels function) or if they are cloud voxels (beersheba 
+    voxels that had no coincidence with the MC). This separation is made to personalize for each one the plot: 
+    different values to plot, colorbars or opacities. Also, you can plot separately and with a solid color the ghost
+    voxels to see them clearly.
+    
+    Args:
+        labelled_voxels: DATAFRAME
+    Output of one of the label_neighbours function. Contains all the voxeles labelled as pure MC class, their
+    neighbours and the ghost class.
+        
+        voxel_size: TUPLE
+    Contains the voxel size of the detector for each coordinate. Used to create the labels.
+    
+        affluence: TUPLE
+    Separation parameter for the labels in each coordinate. If 1, labels will be plotted for each voxel step, 
+    if 2, they will be plotted each 2 voxel steps, etc.
+    
+        value: LIST
+    List with the wanted features to plot, the first for the MC voxels and the second for the cloud ones: [MC, cloud].
+        
+        coords: LIST
+    List with the name of the coordinates in the dataframe to plot.
+        
+        th: FLOAT
+    Minimum value to plot a voxel (usually used with the energy feature, to see the most energetic voxels).
+        
+        edgecolor: STR
+    Color code of the matplotlib library to plot the edges of the voxel.
+        
+        linewidth: FLOAT
+    Number to change width edges of the voxels.
+        
+        cmap: LIST
+    List with the colormap from the matplotlib library to use with each kind of voxels: [MC, cloud].
+        
+        opacity: LIST
+    List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud].
+    
+        ghost_plot: BOOL
+    If True, the plot will plot separated ghost voxels with a solid colour.
+    '''
+    
+    #Escojo el minimo y el maximo por coordenada de ambos DF, ya que si no un df se desplaza respecto a otro (probablemente)
+    #De esta forma, el ''frame'' que calcula (nbins en cada coord) será el máximo siempre, y a las coordenadas a rellenar
+    #le restamos el mínimo de ambos DF ya que si le restamos a cada uno por su cuenta se desplza que era lo que me pasaba
+    #Entonces creo que con esto ya está la verdad
+    
+    xmin, xmax = labelled_voxels[coords[0]].min(), labelled_voxels[coords[0]].max()
+    ymin, ymax = labelled_voxels[coords[1]].min(), labelled_voxels[coords[1]].max()
+    zmin, zmax = labelled_voxels[coords[2]].min(), labelled_voxels[coords[2]].max()
+
+    labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
+
+    nbinsX = int(np.ceil((xmax-xmin))) + 2
+    nbinsY = int(np.ceil((ymax-ymin))) + 2
+    nbinsZ = int(np.ceil((zmax-zmin))) + 2
+    
+    mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    cloud    = labelled_voxels[~np.isin(labelled_voxels.segclass, (1, 2, 3))] #we dont exclude the 7 because if
+    #we plot separately the ghosts they'll cover these so the result is the same at the end
+    
+    if ghost_plot == True:
+        ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
+    
+    #CLOUD
+    xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+    nonzeros = np.vstack([cloud[coords[0]].values-xmin,
+                          cloud[coords[1]].values-ymin,
+                          cloud[coords[2]].values-zmin])
+    nonzeros = nonzeros.astype(int)
+    xarr[tuple(nonzeros)] = cloud[value[1]].values
+    dim     = xarr.shape
+    voxels  = xarr > th
+
+    fig  = plt.figure(figsize=(15, 15), frameon=False)
+    gs   = fig.add_gridspec(2, 40)
+    ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
+    axcb = fig.add_subplot(gs[0, 21])
+    norm = mpl.colors.Normalize(vmin=cloud[value[1]].min(), vmax=cloud[value[1]].max())
+    m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap[1])
+
+    colors = np.asarray(np.vectorize(m.to_rgba)(xarr))
+    colors = np.rollaxis(colors, 0, 4)
+
+    ax.voxels(voxels, facecolors=colors * opacity[1], edgecolor=edgecolor, linewidth = linewidth)
+    cb_cloud = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[1], norm=norm, orientation='vertical')
+
+    #MC
+    xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+    nonzeros = np.vstack([mc_label[coords[0]].values-xmin,
+                          mc_label[coords[1]].values-ymin,
+                          mc_label[coords[2]].values-zmin])
+    nonzeros = nonzeros.astype(int)
+    xarr[tuple(nonzeros)] = mc_label[value[0]].values
+    dim     = xarr.shape
+    voxels  = xarr > th
+    axcb  = fig.add_subplot(gs[0, 18])
+    norm = mpl.colors.Normalize(vmin=mc_label[value[0]].min(), vmax=mc_label[value[0]].max())
+    m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap[0])
+
+    colors = np.asarray(np.vectorize(m.to_rgba)(xarr))
+    colors = np.rollaxis(colors, 0, 4)
+
+    ax.voxels(voxels, facecolors=colors * opacity[0], edgecolor=edgecolor, linewidth = linewidth)
+    cb_mc = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[0], norm=norm, orientation='vertical')
+    
+    
+    #GHOST. Its value is always segclass i guess for now, otherwise change documentation and add another element
+    #to the lists
+    if ghost_plot == True:
+        xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+        nonzeros = np.vstack([ghost[coords[0]].values-xmin,
+                              ghost[coords[1]].values-ymin,
+                              ghost[coords[2]].values-zmin])
+        nonzeros = nonzeros.astype(int)
+        xarr[tuple(nonzeros)] = ghost['segclass'].values
+        dim     = xarr.shape
+        voxels  = xarr > th
+        
+        ax.voxels(voxels, facecolors='g', edgecolor=edgecolor, linewidth = linewidth, label = 'ghost voxels')
+        
+    ax.set_xlabel('X ')
+    ax.set_ylabel('Y ')
+    ax.set_zlabel('Z ')
+    
+    ax.set_xticks(ticks[0])
+    ax.set_xticklabels(labels[0])
+    ax.set_yticks(ticks[1])
+    ax.set_yticklabels(labels[1])
+    ax.set_zticks(ticks[2])
+    ax.set_zticklabels(labels[2])
+    
+    if value[1] == 'segclass':
+        cb_ticks = np.sort(cloud.segclass.unique())
+        cb_cloud.set_ticks(cb_ticks)
+        cb_cloud.set_ticklabels(cb_ticks)
+    cb_cloud.set_label('cloud ' + value[1])
+    
+    if value[0] == 'segclass':
+        cb_ticks = np.sort(mc_label.segclass.unique())
+        cb_mc.set_ticks(cb_ticks)
+        cb_mc.set_ticklabels(cb_ticks)
+    cb_mc.set_label(value[0])    
+    
+    plt.show()
+
+
+
+def plot_adaption_hits_to_voxel_scale(event_hits, voxel_size, coords = ['x', 'y', 'z']):
+    '''
+    We want to plot the MC hits in order to visualize better how the neighbour classes went, so this function 
+    scales the positions for them to coincide.
+    
+    Args:
+        event_hits: DATAFRAME
+    Labelled MC hits of an event.
+        
+        voxel_size: TUPLE
+    Contains the size of the voxel for each dimension.
+        
+        coords: LIST
+    List with the coordinate names in the dataframe.
+        
+    RETURNS:
+        event_scaled_hits: DATAFRAME
+    Copy of the input DF but with scaled coordinates to the voxel size.        
+    '''
+    
+    event_scaled_hits = event_hits.copy()
+    for coor, size in zip(coords, voxel_size):
+        event_scaled_hits[coor] = event_hits[coor] / size
+    return event_scaled_hits
+
+
+def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1]):
+    '''
+    This function is made to plot the neighbour labelled hits (the cloud) with some transparency, and the hits 
+    inside this cloud, to see how they agree. This is better than using the MC labels because it's difficult to
+    see something this way, so these voxels will be mainly transparent when using this.
+    
+    Args:
+        labelled_voxels: DATAFRAME
+    Output of one of the label_neighbours function. Contains all the voxeles labelled as pure MC class, their
+    neighbours and the ghost class.
+        
+        labelled_hits: DATAFRAME
+    Second output of the labelling_MC function. Contains the MC hits with their segclass.
+    
+        voxel_size: TUPLE
+    Contains the voxel size of the detector for each coordinate. Used to create the labels and scale the hits.
+        
+        affluence: TUPLE
+    Separation parameter for the labels in each coordinate. If 1, labels will be plotted for each voxel step, 
+    if 2, they will be plotted each 2 voxel steps, etc.
+    
+        value: LIST
+    List with the wanted features to plot, for the MC and cloud voxels, and the hits: [MC, cloud, hits].
+        
+        coords: LIST
+    List with the name of the coordinates in the dataframe to plot.
+        
+        th: FLOAT
+    Minimum value to plot a voxel (usually used with the energy feature, to see the most energetic voxels).
+        
+        edgecolor: STR
+    Color code of the matplotlib library to plot the edges of the voxel.
+        
+        linewidth: FLOAT
+    Number to change width edges of the voxels.
+        
+        cmap: LIST
+    List with the colormap from the matplotlib library to use with each kind of voxels/hits: [MC, cloud, hits].
+        
+        opacity: LIST
+    List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud].
+    '''
+    
+    #Escojo el minimo y el maximo por coordenada de ambos DF, ya que si no un df se desplaza respecto a otro (probablemente)
+    #De esta forma, el ''frame'' que calcula (nbins en cada coord) será el máximo siempre, y a las coordenadas a rellenar
+    #le restamos el mínimo de ambos DF ya que si le restamos a cada uno por su cuenta se desplza que era lo que me pasaba
+    #Entonces creo que con esto ya está la verdad
+    
+    xmin, xmax = labelled_voxels[coords[0]].min(), labelled_voxels[coords[0]].max()
+    ymin, ymax = labelled_voxels[coords[1]].min(), labelled_voxels[coords[1]].max()
+    zmin, zmax = labelled_voxels[coords[2]].min(), labelled_voxels[coords[2]].max()
+    
+    labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
+    
+    nbinsX = int(np.ceil((xmax-xmin))) + 2
+    nbinsY = int(np.ceil((ymax-ymin))) + 2
+    nbinsZ = int(np.ceil((zmax-zmin))) + 2
+    
+    
+    mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    cloud    = labelled_voxels[~np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    
+    #CLOUD
+    xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+    nonzeros = np.vstack([cloud[coords[0]].values-xmin,
+                          cloud[coords[1]].values-ymin,
+                          cloud[coords[2]].values-zmin])
+    nonzeros = nonzeros.astype(int)
+    xarr[tuple(nonzeros)] = cloud[value[1]].values
+    dim     = xarr.shape
+    voxels  = xarr > th
+
+    fig  = plt.figure(figsize=(15, 15), frameon=False)
+    gs   = fig.add_gridspec(2, 40)
+    ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
+    axcb = fig.add_subplot(gs[0, 24])
+    norm = mpl.colors.Normalize(vmin=cloud[value[1]].min(), vmax=cloud[value[1]].max())
+    m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap[1])
+
+    colors = np.asarray(np.vectorize(m.to_rgba)(xarr))
+    colors = np.rollaxis(colors, 0, 4)
+
+    ax.voxels(voxels, facecolors=colors * opacity[1], edgecolor=edgecolor, linewidth = linewidth)
+    cb_cloud = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[1], norm=norm, orientation='vertical')
+
+    #MC 
+    xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+    nonzeros = np.vstack([mc_label[coords[0]].values-xmin,
+                          mc_label[coords[1]].values-ymin,
+                          mc_label[coords[2]].values-zmin])
+    nonzeros = nonzeros.astype(int)
+    xarr[tuple(nonzeros)] = mc_label[value[0]].values
+    dim     = xarr.shape
+    voxels  = xarr > th
+    
+    #gs   = fig.add_gridspec(2, 40)
+    #ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
+    axcb  = fig.add_subplot(gs[0, 21])
+    norm = mpl.colors.Normalize(vmin=mc_label[value[0]].min(), vmax=mc_label[value[0]].max())
+    m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap[0])
+
+    colors = np.asarray(np.vectorize(m.to_rgba)(xarr))
+    colors = np.rollaxis(colors, 0, 4)
+
+    ax.voxels(voxels, facecolors=colors * opacity[0], edgecolor=edgecolor, linewidth = linewidth)
+    cb_mc = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[0], norm=norm, orientation='vertical')
+    
+    #HITS
+    scaled_hits = plot_adaption_hits_to_voxel_scale(labelled_hits, voxel_size)
+    
+    axcb = fig.add_subplot(gs[0, 18])
+    norm = mpl.colors.Normalize(vmin=scaled_hits.loc[:, value[2]].min(), vmax=scaled_hits.loc[:, value[2]].max())
+
+    m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap[2])
+
+    colors = np.asarray(np.vectorize(m.to_rgba)(scaled_hits.loc[:, value[2]]))
+    colors = np.rollaxis(colors, 0, 2)
+
+    ax.scatter(scaled_hits[coords[0]] - xmin, scaled_hits[coords[1]] - ymin, scaled_hits[coords[2]] - zmin, c=colors, marker='o')
+    cb_hits = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[2], norm=norm, orientation='vertical')
+    
+    ax.set_xlabel('X ')
+    ax.set_ylabel('Y ')
+    ax.set_zlabel('Z ')
+    
+    ax.set_xticklabels(labels[0])
+    ax.set_xticks(ticks[0])
+    ax.set_yticklabels(labels[1])
+    ax.set_yticks(ticks[1])
+    ax.set_zticklabels(labels[2])
+    ax.set_zticks(ticks[2])
+    
+    if value[1] == 'segclass':
+        cb_cloud.set_ticks([4, 5, 6])
+        cb_cloud.set_ticklabels([4, 5, 6])
+    cb_cloud.set_label('cloud ' + value[1])
+    
+    if value[0] == 'segclass':
+        cb_mc.set_ticks([1, 2, 3])
+        cb_mc.set_ticklabels([1, 2, 3])
+    cb_mc.set_label(value[0])
+    
+    if value[2] == 'segclass':
+        cb_hits.set_ticks([1, 2, 3])
+        cb_hits.set_ticklabels([1, 2, 3])
+    cb_hits.set_label('hits ' + value[2])
+    
+    plt.show()
