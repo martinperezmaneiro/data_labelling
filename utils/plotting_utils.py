@@ -4,6 +4,9 @@ import matplotlib        as mpl
 import matplotlib.pyplot as plt
 
 from   mpl_toolkits.mplot3d import Axes3D
+from   matplotlib.patches   import Patch
+
+
 
 def plot_3d_histo_hits(hist, bins, cmap = mpl.cm.jet, clabel = 'Energy'):
     '''
@@ -240,7 +243,7 @@ def plot_label_creator(min_vals, max_vals, voxel_size, affluence):
 
 
 #another useful colorbars: viridis, cividis....
-def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [1,1], ghost_plot = False):
+def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [1,1]):
     '''
     This function takes all the labelled voxels (the output of one of the label_neighbours function) and plots them
     separately if they are MC voxeles (beersheba voxels that were coincident with those of their MC true event and 
@@ -281,16 +284,14 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
         
         opacity: LIST
     List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud].
-    
-        ghost_plot: BOOL
-    If True, the plot will plot separated ghost voxels with a solid colour.
     '''
     
     #Escojo el minimo y el maximo por coordenada de ambos DF, ya que si no un df se desplaza respecto a otro (probablemente)
     #De esta forma, el ''frame'' que calcula (nbins en cada coord) será el máximo siempre, y a las coordenadas a rellenar
     #le restamos el mínimo de ambos DF ya que si le restamos a cada uno por su cuenta se desplza que era lo que me pasaba
     #Entonces creo que con esto ya está la verdad
-    
+
+
     xmin, xmax = labelled_voxels[coords[0]].min(), labelled_voxels[coords[0]].max()
     ymin, ymax = labelled_voxels[coords[1]].min(), labelled_voxels[coords[1]].max()
     zmin, zmax = labelled_voxels[coords[2]].min(), labelled_voxels[coords[2]].max()
@@ -302,12 +303,10 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     nbinsZ = int(np.ceil((zmax-zmin))) + 2
     
     mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
-    cloud    = labelled_voxels[~np.isin(labelled_voxels.segclass, (1, 2, 3))] #we dont exclude the 7 because if
-    #we plot separately the ghosts they'll cover these so the result is the same at the end
+    cloud    = labelled_voxels[np.isin(labelled_voxels.segclass, (4, 5, 6))] 
+    ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
     
-    if ghost_plot == True:
-        ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
-    
+        
     #CLOUD
     xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
 
@@ -319,8 +318,8 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     dim     = xarr.shape
     voxels  = xarr > th
 
-    fig  = plt.figure(figsize=(15, 15), frameon=False)
-    gs   = fig.add_gridspec(2, 40)
+    fig  = plt.figure(figsize=(15, 7), frameon=False)
+    gs   = fig.add_gridspec(1, 40)
     ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
     axcb = fig.add_subplot(gs[0, 21])
     norm = mpl.colors.Normalize(vmin=cloud[value[1]].min(), vmax=cloud[value[1]].max())
@@ -353,9 +352,8 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     cb_mc = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[0], norm=norm, orientation='vertical')
     
     
-    #GHOST. Its value is always segclass i guess for now, otherwise change documentation and add another element
-    #to the lists
-    if ghost_plot == True:
+    #GHOST
+    if ghost.empty == False:
         xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
 
         nonzeros = np.vstack([ghost[coords[0]].values-xmin,
@@ -366,7 +364,9 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
         dim     = xarr.shape
         voxels  = xarr > th
         
-        ax.voxels(voxels, facecolors='g', edgecolor=edgecolor, linewidth = linewidth, label = 'ghost voxels')
+        ax.voxels(voxels, facecolors='g', edgecolor=edgecolor, linewidth = linewidth)
+        legend_elements = [Patch(facecolor='g', edgecolor='g', label='ghost class')]
+        ax.legend(handles=legend_elements)
         
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
@@ -379,17 +379,17 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     ax.set_zticks(ticks[2])
     ax.set_zticklabels(labels[2])
     
-    if value[1] == 'segclass':
-        cb_ticks = np.sort(cloud.segclass.unique())
-        cb_cloud.set_ticks(cb_ticks)
-        cb_cloud.set_ticklabels(cb_ticks)
-    cb_cloud.set_label('cloud ' + value[1])
-    
     if value[0] == 'segclass':
         cb_ticks = np.sort(mc_label.segclass.unique())
         cb_mc.set_ticks(cb_ticks)
         cb_mc.set_ticklabels(cb_ticks)
-    cb_mc.set_label(value[0])    
+    cb_mc.set_label(value[0])  
+    
+    if value[1] == 'segclass':
+        cb_ticks = np.sort(cloud.segclass.unique())
+        cb_cloud.set_ticks(cb_ticks)
+        cb_cloud.set_ticklabels(cb_ticks)
+    cb_cloud.set_label('cloud ' + value[1])  
     
     plt.show()
 
@@ -481,7 +481,8 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     
     
     mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
-    cloud    = labelled_voxels[~np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    cloud    = labelled_voxels[np.isin(labelled_voxels.segclass, (4, 5, 6))]
+    ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
     
     #CLOUD
     xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
@@ -494,8 +495,8 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     dim     = xarr.shape
     voxels  = xarr > th
 
-    fig  = plt.figure(figsize=(15, 15), frameon=False)
-    gs   = fig.add_gridspec(2, 40)
+    fig  = plt.figure(figsize=(15, 7), frameon=False)
+    gs   = fig.add_gridspec(1, 40)
     ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
     axcb = fig.add_subplot(gs[0, 24])
     norm = mpl.colors.Normalize(vmin=cloud[value[1]].min(), vmax=cloud[value[1]].max())
@@ -529,6 +530,22 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
 
     ax.voxels(voxels, facecolors=colors * opacity[0], edgecolor=edgecolor, linewidth = linewidth)
     cb_mc = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[0], norm=norm, orientation='vertical')
+    
+    #GHOST
+    if ghost.empty == False:
+        xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
+
+        nonzeros = np.vstack([ghost[coords[0]].values-xmin,
+                              ghost[coords[1]].values-ymin,
+                              ghost[coords[2]].values-zmin])
+        nonzeros = nonzeros.astype(int)
+        xarr[tuple(nonzeros)] = ghost['segclass'].values
+        dim     = xarr.shape
+        voxels  = xarr > th
+        
+        ax.voxels(voxels, facecolors='g', edgecolor=edgecolor, linewidth = linewidth)
+        legend_elements = [Patch(facecolor='g', edgecolor='g', label='ghost class')]
+        ax.legend(handles=legend_elements)
     
     #HITS
     scaled_hits = plot_adaption_hits_to_voxel_scale(labelled_hits, voxel_size)
