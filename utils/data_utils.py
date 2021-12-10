@@ -156,7 +156,8 @@ def calculate_track_distances(tracks_info, hits_label):
     
     '''
     #Delete hits with BUFFER label (otherwise some hits are duplicated)
-    hits_label = hits_label.loc[hits_label.label == 'ACTIVE'] 
+    #This is commented because it is already done in the global MC labelling function
+    #hits_label = hits_label.loc[hits_label.label == 'ACTIVE'] 
     
     #Reordes hits with ascendent ID
     hits_label = hits_label.sort_values(['event_id', 'particle_id', 'hit_id'], ascending=[True, True, True])

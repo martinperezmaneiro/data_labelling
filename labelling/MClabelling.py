@@ -45,7 +45,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
 
     #Obtenemos la información de partíuclas y hits de un fichero en concreto
     mcpart = dio.load_dst(directory, 'MC', 'particles') 
-    mchits = dio.load_dst(directory, 'MC', 'hits') 
+    mchits = dio.load_dst(directory, 'MC', 'hits')
+
+    #Seleccionamos los hits activos
+    mchits = mchits[mchits.label == 'ACTIVE']
     
     #Etiquetamos los hits 
     labelled_hits = add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = blob_ener_loss_th, blob_ener_th = blob_ener_th)
