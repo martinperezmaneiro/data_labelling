@@ -24,9 +24,6 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
     
         start_bin: TUPLE
     Contains the first voxel position for each coordinate.
-        
-        binclass: BOOL
-    Used to decide whether we want the binclass information in the output or we dont.
     
         blob_ener_loss_th: FLOAT
     Energy loss percentage of total track energy for the last hits that establishes a threshold for the blob class.
