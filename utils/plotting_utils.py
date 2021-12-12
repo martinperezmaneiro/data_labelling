@@ -243,7 +243,7 @@ def plot_label_creator(min_vals, max_vals, voxel_size, affluence):
 
 
 #another useful colorbars: viridis, cividis....
-def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [1,1]):
+def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [1,1]):
     '''
     This function takes all the labelled voxels (the output of one of the label_neighbours function) and plots them
     separately if they are MC voxeles (beersheba voxels that were coincident with those of their MC true event and 
@@ -421,7 +421,7 @@ def plot_adaption_hits_to_voxel_scale(event_hits, voxel_size, coords = ['x', 'y'
     return event_scaled_hits
 
 
-def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass', 'segclass'], coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1]):
+def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1]):
     '''
     This function is made to plot the neighbour labelled hits (the cloud) with some transparency, and the hits 
     inside this cloud, to see how they agree. This is better than using the MC labels because it's difficult to
@@ -558,7 +558,7 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     colors = np.asarray(np.vectorize(m.to_rgba)(scaled_hits.loc[:, value[2]]))
     colors = np.rollaxis(colors, 0, 2)
 
-    ax.scatter(scaled_hits[coords[0]] - xmin, scaled_hits[coords[1]] - ymin, scaled_hits[coords[2]] - zmin, c=colors, marker='o')
+    ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=colors, marker='o')
     cb_hits = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[2], norm=norm, orientation='vertical')
     
     ax.set_xlabel('X ')
