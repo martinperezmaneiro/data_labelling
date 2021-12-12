@@ -7,7 +7,7 @@ from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th = None, blob_ener_th = None):
+def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy 
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling. 
@@ -31,6 +31,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
         blob_ener_th: FLOAT
     Energy threshold for the last hits of a track to become blob class.
     
+        Rmax: NaN or FLOAT
+    Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
+
     RETURNS:
         voxelization_df: DATAFRAME
     It contains the positions, energies and labels for each voxel of each event in a single file.
@@ -49,6 +52,21 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
     
     #Etiquetamos los hits 
     labelled_hits = add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = blob_ener_loss_th, blob_ener_th = blob_ener_th)
+
+    #Creo el boundary cut (elimina hits fuera del tamaño del detector deseado)
+    binsX, binsY, binsZ = bins
+    boundary_cut = (labelled_hits.x>=binsX.min()) & (labelled_hits.x<=binsX.max())\
+                 & (labelled_hits.y>=binsY.min()) & (labelled_hits.y<=binsY.max())\
+                 & (labelled_hits.z>=binsZ.min()) & (labelled_hits.z<=binsZ.max())
+
+    #Creo el fiducial cut (toma los hits dentro de cierto radio)
+    if np.isnan(Rmax):
+        fiducial_cut = pd.Series(np.ones(len(labelled_hits), dtype=bool)) #creates a mask with all trues
+    else:
+        fiducial_cut = (labelled_hits.x**2+labelled_hits.y**2)<Rmax**2
+
+    #Finalmente escojo dichos hits
+    labelled_hits = labelled_hits[boundary_cut & fiducial_cut].reset_index(drop = True)
     
     #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
     voxelization_df = pd.DataFrame()
