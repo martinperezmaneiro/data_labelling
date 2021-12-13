@@ -3,7 +3,7 @@ import pandas as pd
 
 from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts
 
 from invisible_cities.io   import dst_io as dio
 
@@ -53,20 +53,8 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
     #Etiquetamos los hits 
     labelled_hits = add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = blob_ener_loss_th, blob_ener_th = blob_ener_th)
 
-    #Creo el boundary cut (elimina hits fuera del tamaño del detector deseado)
-    binsX, binsY, binsZ = bins
-    boundary_cut = (labelled_hits.x>=binsX.min()) & (labelled_hits.x<=binsX.max())\
-                 & (labelled_hits.y>=binsY.min()) & (labelled_hits.y<=binsY.max())\
-                 & (labelled_hits.z>=binsZ.min()) & (labelled_hits.z<=binsZ.max())
-
-    #Creo el fiducial cut (toma los hits dentro de cierto radio)
-    if np.isnan(Rmax):
-        fiducial_cut = pd.Series(np.ones(len(labelled_hits), dtype=bool)) #creates a mask with all trues
-    else:
-        fiducial_cut = (labelled_hits.x**2+labelled_hits.y**2)<Rmax**2
-
-    #Finalmente escojo dichos hits
-    labelled_hits = labelled_hits[boundary_cut & fiducial_cut].reset_index(drop = True)
+    #Hacemos los cortes en los hits
+    labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
     
     #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
     voxelization_df = pd.DataFrame()
