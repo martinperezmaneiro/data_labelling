@@ -244,7 +244,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     return mc_hit_id, mc_hit_ener, mc_hit_portion
 
 
-def hit_data_cuts(hits, bins, Rmax = np.nan):
+def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z']):
     '''
     This function performs the fiducial and boundary cuts to the input hits.
 
@@ -258,6 +258,9 @@ def hit_data_cuts(hits, bins, Rmax = np.nan):
         Rmax: NaN OR FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
 
+        coords: LIST
+    Title of the columns for the coordinates.
+
     RETURNS:
         hits_cut: DATAFRAME
     The same dataframe with the cut performed.
@@ -265,15 +268,15 @@ def hit_data_cuts(hits, bins, Rmax = np.nan):
 
     #Creo el boundary cut (elimina hits fuera del tamaño del detector deseado)
     binsX, binsY, binsZ = bins
-    boundary_cut = (hits.x>=binsX.min()) & (hits.x<=binsX.max())\
-                 & (hits.y>=binsY.min()) & (hits.y<=binsY.max())\
-                 & (hits.z>=binsZ.min()) & (hits.z<=binsZ.max())
+    boundary_cut = (hits[coords[0]]>=binsX.min()) & (hits[coords[0]]<=binsX.max())\
+                 & (hits[coords[1]]>=binsY.min()) & (hits[coords[1]]<=binsY.max())\
+                 & (hits[coords[2]]>=binsZ.min()) & (hits[coords[2]]<=binsZ.max())
 
     #Creo el fiducial cut (toma los hits dentro de cierto radio)
     if np.isnan(Rmax):
         fiducial_cut = pd.Series(np.ones(len(hits), dtype=bool)) #creates a mask with all trues
     else:
-        fiducial_cut = (hits.x**2+hits.y**2)<Rmax**2
+        fiducial_cut = (hits[coords[0]]**2+hits[coords[1]]**2)<Rmax**2
 
     #Finalmente escojo dichos hits
     hits_cut = hits[boundary_cut & fiducial_cut].reset_index(drop = True)

@@ -45,7 +45,7 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     detector_frame = container_creator(total_size, voxel_size)
     detector_bins  = bin_creator(detector_frame, steps = voxel_size, x0 = start_bin)
 
-    beersh_hits = hit_data_cuts(beersh_hits, detector_bins, Rmax = Rmax)
+    beersh_hits = hit_data_cuts(beersh_hits, detector_bins, Rmax = Rmax, coords = ['X', 'Y', 'Z'])
     
     binclass = np.array([])
     if labelled_vox.empty != True:
