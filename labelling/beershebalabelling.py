@@ -5,7 +5,7 @@ from utils.histogram_utils           import bin_creator, container_creator
 from utils.beersheba_labelling_utils import assign_nlabels, voxelize_beersh, merge_MC_beersh_voxels
 #label_neighbours_ordered because it would be entered as a function imput
 
-def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_MC_voxels, label_neighbours_function, simple = True, relabel = True):
+def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_MC_voxels, label_neighbours_function, simple = True, relabel = True, Rmax = np.nan):
     '''
     Takes the beersheba file, voxelizes its hits and labels them with the help of the labelled MC voxels, the 
     output of the labelling_MC function.
@@ -38,19 +38,23 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
     If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
     voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the 
     true coincident voxels.
+
+        Rmax: NaN or FLOAT
+    Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
     
     RETURNS:
         mc_beersh_voxels: DATAFRAME
     Contains all the beersheba labelled voxels. It has their positions, energies, segclass, binclass; ener and ratio
     values are also included but only the MC voxels have them
     '''
+    
     detector_frame = container_creator(total_size, voxel_size)
     detector_bins  = bin_creator(detector_frame, steps = voxel_size, x0 = start_bin)
     
     nlabel_dict = assign_nlabels()
     
     #Beersheba hits voxelization
-    beersh_voxels = voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox = labelled_MC_voxels, simple = simple)
+    beersh_voxels = voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox = labelled_MC_voxels, simple = simple, Rmax = Rmax)
 
     #Joining of the MC and beersheba voxels, and discrepancies correction
     mc_beersh_voxels = merge_MC_beersh_voxels(labelled_MC_voxels, beersh_voxels, relabel = relabel)

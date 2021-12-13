@@ -3,12 +3,12 @@ import numpy as np
 
 from utils.histogram_utils import bin_creator, container_creator, mcimg
 from utils.data_utils      import histog_to_coord
-from utils.labelling_utils import voxel_labelling_MC
+from utils.labelling_utils import voxel_labelling_MC, hit_data_cuts
 
 from invisible_cities.io   import dst_io as dio
 
 
-def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox = pd.DataFrame(), simple = True):
+def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox = pd.DataFrame(), simple = True, Rmax = np.nan):
     '''
     Voxelizes the beersheba reconstructed hits. In addition, you can already include the binary classification 
     information of each event (taken from the labelled MC voxels).
@@ -32,6 +32,9 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
         simple: BOOL
     If true, the output will just have an energy voxelization. Else, it will take npeak as hit_id for the 
     voxelization, and also would compute ratio for this variable.
+
+       Rmax: NaN or FLOAT
+    Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
     
     RETURNS:
         voxel_df: DATAFRAME
@@ -41,6 +44,8 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     beersh_hits = dio.load_dst(beersh_dir, 'DECO', 'Events') 
     detector_frame = container_creator(total_size, voxel_size)
     detector_bins  = bin_creator(detector_frame, steps = voxel_size, x0 = start_bin)
+
+    beersh_hits = hit_data_cuts(beersh_hits, detector_bins, Rmax = Rmax)
     
     binclass = np.array([])
     if labelled_vox.empty != True:
