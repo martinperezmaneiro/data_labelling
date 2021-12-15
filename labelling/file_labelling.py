@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy  as np
+import os
 
 from labelling.MClabelling        import labelling_MC
 from labelling.beershebalabelling import labelling_beersheba
@@ -114,3 +115,103 @@ def label_file(directory,
         print('No labelling has been performed')
         
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba
+
+
+def create_final_dataframes(label_file_dfs, start_id, directory, total_size, voxel_size, start_bin, Rmax = np.nan): 
+    '''
+    This function takes the output of label_file function and prepares the data to be saved in a h5 file.
+    It will return a dataframe with the bins information of the voxelization of the hits, a dataframe with
+    the information of each event, and the dataframes with hits/voxels from the input will have in the output
+    an identifier that maps this each hit/voxel with an event in the event info dataframe, so we can track back 
+    to its origin data.
+    
+    Args:
+        label_file_dfs: TUPLE OF DATAFRAMES
+    It's directly the output of the label_file function, that contains three dataframes: the labelled MC voxels,
+    the labelled MC hits and the labelled beersheba voxels.
+    
+        start_id: INT
+    Number to do the mapping between event information and its hits/voxels. It's actualized for every input file
+    that we are going to add to the output file in the script that performs the creation of the labelled file.
+    
+        directory: STR
+    Directory of the current file labelled to add its information to the event information df.
+    
+        total_size: TUPLE 
+    Contains the max size of the detector.
+    
+        voxel_size: TUPLE
+    Contains the voxel size of the detector for each coordinate.
+    
+        start_bin: TUPLE
+    Contains the first voxel position for each coordinate.
+    
+    RETURNS:
+        labelled_MC_voxels: DATAFRAME
+    If the conditions are satisfied (binclass = True, i.e. the dataframe is not empty), this contains the 
+    labelled MC voxels for each event in the file, and it has been added a dataset_id that maps each voxel
+    with the event information.
+        
+        labelled_MC_hits: DATAFRAME
+    If the conditions are satisfied (binclass = True, i.e. the dataframe is not empty), this contains the 
+    labelled MC hits for each event in the file, and it has been added a dataset_id that maps each hit
+    with the event information. We will use them to plot nicer images.
+        
+        labelled_beersheba: DATAFRAME
+    If the conditions are satisfied (binclass and segclas = True, i.e. the dataframe is not empty), this 
+    contains the labelled beersheba voxels for each event in the file, and it has been added a dataset_id 
+    that maps each voxel with the event information.
+    
+        eventInfo: DATAFRAME
+    Contains the information for each event: its original file directory, its event_id and a dataset_id that 
+    maps every hit/voxel with them.
+    
+        binsInfo: DATAFRAME
+    Contains the voxelization information and the value of the fiducial cut.
+    '''
+    
+    labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = label_file_dfs
+    if labelled_MC_voxels.empty:
+        raise Exception('DataFrames are empty, labelling has not been performed')
+    else:
+        eventInfo = labelled_MC_voxels[['event_id', 'binclass']].drop_duplicates().reset_index(drop=True)
+        dct_map = {eventInfo.iloc[i].event_id : i + start_id for i in range(len(eventInfo))}
+        pathname, basename = os.path.split(directory)
+        eventInfo = eventInfo.assign(pathname = pathname, basename = basename, dataset_id = eventInfo.event_id.map(dct_map))
+        
+        labelled_MC_voxels = labelled_MC_voxels.assign(dataset_id = labelled_MC_voxels.event_id.map(dct_map))
+        labelled_MC_hits   = labelled_MC_hits.assign(dataset_id   = labelled_MC_hits.event_id.map(dct_map))
+        
+        labelled_MC_voxels = labelled_MC_voxels.drop('event_id', axis=1)
+        labelled_MC_hits   = labelled_MC_hits.drop('event_id', axis=1)
+        
+        if labelled_beersheba.empty:
+            print('Beersheba labelling has not been performed')
+        else:
+            labelled_beersheba = labelled_beersheba.assign(dataset_id = labelled_beersheba.event_id.map(dct_map))
+            labelled_beersheba = labelled_beersheba.drop('event_id', axis=1)
+    
+    min_x, min_y, min_z       = start_bin[0], start_bin[1], start_bin[2]
+    total_x, total_y, total_z = total_size[0], total_size[1], total_size[2]
+    max_x, max_y, max_z       = min_x + total_x, min_y + total_y, min_z + total_z 
+    size_x, size_y, size_z    = voxel_size[0], voxel_size[1], voxel_size[2]
+    nbins_x, nbins_y, nbins_z = [(total + voxel) / voxel for total, voxel in zip(total_size, voxel_size)] 
+    binsInfo = pd.Series({'min_x'   : min_x,
+                          'total_x' : total_x, 
+                          'size_x'  : size_x,
+                          'max_x'   : max_x,
+                          'nbins_x' : nbins_x,
+                          'min_y'   : min_y,
+                          'total_y' : total_y,
+                          'size_y'  : size_y,
+                          'max_y'   : max_y,
+                          'nbins_y' : nbins_y,
+                          'min_z'   : min_z,
+                          'total_z' : total_z,
+                          'size_z'  : size_z,
+                          'max_z'   : max_z,
+                          'nbins_z' : nbins_z,
+                          'Rmax'    : Rmax
+                          }).to_frame().T
+    
+    return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo
