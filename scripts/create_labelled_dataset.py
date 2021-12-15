@@ -6,6 +6,23 @@ This script creates hdf5 files that contains:
  - DATASET/BeershebaVoxels - voxelized beersheba hits table with segmentation labels
  - DATASET/EventsInfo      - table that contains EventID, source directory and  binary classification label
  - DATASET/BinInfo         - table that stores info about bins
+
+It takes a CONFIG FILE with the following information:
+ - files_in   - string with the beersheba files we want to label
+ - file_out   - string with the name of the output file that will contain all the labelled data from the input files
+ - total_size - tuple with the size of the detector for each coordinate (in mm), the hits outside this margins will 
+                not be processed
+ - voxel_size - tuple with the size of the voxels for each coordinate (in mm)
+ - start_bin  - tuple with the  min position of the hits for each coordinate (in mm)
+ - label_neighbours_name - string with the name of the neighbour labelling method
+ - blob_ener_loss_th - threshold for the main blob class labelling (in terms of percentage of loss energy at the end
+                       of the track with respect to the total track energy)
+ - blob_ener_th - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
+ - simple - bool that indicates a way of voxelization for the beersheba hits (not very relevant, for now always True)
+ - relabel - bool that indicates if the residual MC voxels are reassigned to an existent beersheba voxel
+ - binclass - bool that indicates if the process does the binary labelling
+ - segclass - bool that indicates if the process does the segmentation labelling, requires binclass True
+ - Rmax - value for the fiducial cut, if NaN the cut is not performed
 """
 
 import sys
