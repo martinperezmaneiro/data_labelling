@@ -78,6 +78,7 @@ if __name__ == "__main__":
                                                                                                                 voxel_size,
                                                                                                                 start_bin,
                                                                                                                 Rmax = config.Rmax)
+        binsInfo  = binsInfo.drop(np.arange(1, len(binsInfo), 1), axis = 0)
         start_id +=len(eventInfo)
         with tb.open_file(fileout, 'a') as h5out:
             dio.df_writer(h5out, labelled_MC_hits  , 'DATASET', 'MCHits'         , columns_to_index=['dataset_id'])
