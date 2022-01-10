@@ -23,7 +23,7 @@ start=`date +%s`
 #################################
 #########  JOB CORE ############
 ################################
-# set up IC
+# set up IC in the CESGA machine
 source $STORE/ic_setup.sh
 
 {commands} #aqui iran los comandos a correr, tipo city beersheba beersheba.conf
