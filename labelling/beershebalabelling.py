@@ -7,8 +7,8 @@ from utils.beersheba_labelling_utils import assign_nlabels, voxelize_beersh, mer
 
 def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_MC_voxels, label_neighbours_function, simple = True, relabel = True, Rmax = np.nan):
     '''
-    Takes the beersheba file, voxelizes its hits and labels them with the help of the labelled MC voxels, the 
-    output of the labelling_MC function.
+    Takes the beersheba file, voxelizes its hits and labels them with the help of the labelled MC voxels, 
+    the output of the labelling_MC function, depending on the chosen neighbour labelling method.
     
     Args:
         beersh_dir: STR
