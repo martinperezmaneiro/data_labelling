@@ -33,8 +33,8 @@ import pandas as pd
 
 from glob import glob
 from time import time
-from invisible_cities.io import dst_io    as dio
-from invisible_cities.core  .configure import configure
+from invisible_cities.io                import dst_io as dio
+from invisible_cities.core  .configure  import configure
 from invisible_cities.cities.components import index_tables
 
 from labelling.file_labelling import label_file, create_final_dataframes
@@ -59,6 +59,13 @@ if __name__ == "__main__":
         start_time = time()
         print(i, f)
         total_size, voxel_size, start_bin = config.total_size, config.voxel_size, config.start_bin
+        
+        #We check if a file has empty dataframes; it happens sometimes
+        check_df = dio.load_dst(f, 'MC', 'hits')
+        if check_df.empty:
+            print('This file has empty dataframes')
+            continue
+        
         label_file_dfs = label_file(f,
                                     total_size,
                                     voxel_size,
