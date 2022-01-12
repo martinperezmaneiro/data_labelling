@@ -25,6 +25,8 @@ start=`date +%s`
 ################################
 # set up IC in the CESGA machine
 source $STORE/ic_setup.sh
+source $HOME/data_labelling/setup.sh
+pwd
 
 {commands} #aqui iran los comandos a correr, tipo city beersheba beersheba.conf
 

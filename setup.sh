@@ -1,4 +1,6 @@
 #!/usr/bin/bash
-export SCN=$PWD
-export PYTHONPATH=$SCN:$PYTHONPATH
+
+export DLDIR=$HOME/data_labelling/
+export PYTHONPATH=$DLDIR:$PYTHONPATH
+export PATH=$DLDIR/bin:$PATH
 
