@@ -1,5 +1,5 @@
-import numpy as np
-
+import numpy  as np
+import pandas as pd
 import matplotlib        as mpl
 import matplotlib.pyplot as plt
 
@@ -145,21 +145,60 @@ def plot_projections(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.
 
     
 def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap=mpl.cm.jet, opacity = 1):
-
-    xmin, xmax = hits_digitized[coords[0]].min(), hits_digitized[coords[0]].max()
-    ymin, ymax = hits_digitized[coords[1]].min(), hits_digitized[coords[1]].max()
-    zmin, zmax = hits_digitized[coords[2]].min(), hits_digitized[coords[2]].max()
-
+    '''
+    Function to plot voxels (they have to be normalized)
+    
+    Args:
+        hits_digitized: DataFrame or list/tuple/array of lists/arrays
+    Contains the spatial information of the voxels and their content. If we don't use a DataFrame, the input
+    must have the structure (x, y, z, content), where content is usually the energy or the segclass. Its shape
+    will be (4, N).
+    
+        value: STR
+    Name of the content column in the DataFrame. Will be also the label of the colorbar.
+    
+        coords: LIST
+    Name of the coords column in the DataFrame.
+    
+        th: FLOAT
+    Low threshold of the content of the voxels to plot.
+        
+        edgecolor: STR
+    Color of the edges of the voxels.
+    
+        linewidth: FLOAT
+    Width of the edges of the voxels.
+    
+        cmap: matplotlib.cm
+    Used colormap.
+    
+        opacity = FLOAT
+    Value from 0 to 1 that indicates the opacity of the voxels.
+    '''
+    
+    if type(hits_digitized) == type(pd.DataFrame()):
+        xcoord  = hits_digitized[coords[0]].values
+        ycoord  = hits_digitized[coords[1]].values
+        zcoord  = hits_digitized[coords[2]].values
+        content = hits_digitized[value].values
+    else:
+        xcoord, ycoord, zcoord, content = hits_digitized[0], hits_digitized[1], hits_digitized[2], hits_digitized[3]
+        
+    xmin, xmax = min(xcoord), max(xcoord)
+    ymin, ymax = min(ycoord), max(ycoord)
+    zmin, zmax = min(zcoord), max(zcoord)
+    
     nbinsX = int(np.ceil((xmax-xmin))) + 2
     nbinsY = int(np.ceil((ymax-ymin))) + 2
     nbinsZ = int(np.ceil((zmax-zmin))) + 2
     xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
 
-    nonzeros = np.vstack([hits_digitized[coords[0]].values-xmin+1,
-                          hits_digitized[coords[1]].values-ymin+1,
-                          hits_digitized[coords[2]].values-zmin+1])
+    nonzeros = np.vstack([xcoord-xmin+1,
+                          ycoord-ymin+1,
+                          zcoord-zmin+1])
+    
     nonzeros = nonzeros.astype(int)
-    xarr[tuple(nonzeros)] = hits_digitized[value].values
+    xarr[tuple(nonzeros)] = content
     dim     = xarr.shape
     voxels  = xarr > th
 
@@ -184,19 +223,49 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     plt.show()
 
     
-def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.jet):
+def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.jet, opacity = 1):
+    '''
+    Function to plot hits 
+    
+    Args:
+        hits: DataFrame or list/tuple/array of lists/arrays
+    Contains the spatial information of the hits and their content. If we don't use a DataFrame, the input
+    must have the structure (x, y, z, content), where content is usually the energy or the segclass. Its shape
+    will be (4, N).
+    
+        value: STR
+    Name of the content column in the DataFrame. Will be also the label of the colorbar.
+    
+        coords: LIST
+    Name of the coords column in the DataFrame.
+        
+        cmap: matplotlib.cm
+    Used colormap.
+    
+        opacity = FLOAT
+    Value from 0 to 1 that indicates the opacity of the hits.
+    '''
+    
+    if type(hits) == type(pd.DataFrame()):
+        xcoord  = hits[coords[0]].values
+        ycoord  = hits[coords[1]].values
+        zcoord  = hits[coords[1]].values
+        content = hits[value].values
+    else:
+        xcoord, ycoord, zcoord, content = hits[0], hits[1], hits[2], hits[3]
+    
     fig  = plt.figure(figsize=(15, 15), frameon=False)
     gs   = fig.add_gridspec(2, 40)
     ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
     axcb = fig.add_subplot(gs[0, 18])
-    norm = mpl.colors.Normalize(vmin=hits.loc[:, value].min(), vmax=hits.loc[:, value].max())
+    norm = mpl.colors.Normalize(vmin=min(content), vmax=max(content))
 
     m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
 
-    colors = np.asarray(np.vectorize(m.to_rgba)(hits.loc[:, value]))
+    colors = np.asarray(np.vectorize(m.to_rgba)(content))
     colors = np.rollaxis(colors, 0, 2)
 
-    ax.scatter(hits[coords[0]], hits[coords[1]], hits[coords[2]], c=colors, marker='o')
+    ax.scatter(xcoord, ycoord, zcoord, c=colors * opacity, marker='o')
     cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap, norm=norm, orientation='vertical')
 
 
