@@ -149,7 +149,7 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     Function to plot voxels (they have to be normalized)
     
     Args:
-        hits_digitized: DataFrame or list/tuple/array of lists/arrays
+        hits_digitized: DataFrame or list/tuple/array of lists/tuples/arrays in any combination
     Contains the spatial information of the voxels and their content. If we don't use a DataFrame, the input
     must have the structure (x, y, z, content), where content is usually the energy or the segclass. Its shape
     will be (4, N).
@@ -177,12 +177,15 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     '''
     
     if type(hits_digitized) == type(pd.DataFrame()):
-        xcoord  = hits_digitized[coords[0]].values
-        ycoord  = hits_digitized[coords[1]].values
-        zcoord  = hits_digitized[coords[2]].values
-        content = hits_digitized[value].values
+        pass
     else:
-        xcoord, ycoord, zcoord, content = hits_digitized[0], hits_digitized[1], hits_digitized[2], hits_digitized[3]
+        coor = np.array(hits_digitized).T
+        hits_digitized = pd.DataFrame(coor, columns = coords + [value])
+    
+    xcoord  = hits_digitized[coords[0]].values
+    ycoord  = hits_digitized[coords[1]].values
+    zcoord  = hits_digitized[coords[2]].values
+    content = hits_digitized[value].values
         
     xmin, xmax = min(xcoord), max(xcoord)
     ymin, ymax = min(ycoord), max(ycoord)
@@ -228,7 +231,7 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     Function to plot hits 
     
     Args:
-        hits: DataFrame or list/tuple/array of lists/arrays
+        hits: DataFrame or list/tuple/array of lists/tuples/arrays
     Contains the spatial information of the hits and their content. If we don't use a DataFrame, the input
     must have the structure (x, y, z, content), where content is usually the energy or the segclass. Its shape
     will be (4, N).
@@ -247,12 +250,15 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     '''
     
     if type(hits) == type(pd.DataFrame()):
-        xcoord  = hits[coords[0]].values
-        ycoord  = hits[coords[1]].values
-        zcoord  = hits[coords[1]].values
-        content = hits[value].values
+        pass
     else:
-        xcoord, ycoord, zcoord, content = hits[0], hits[1], hits[2], hits[3]
+        coor = np.array(hits).T
+        hits = pd.DataFrame(coor, columns = coords + [value])
+    
+    xcoord  = hits[coords[0]].values
+    ycoord  = hits[coords[1]].values
+    zcoord  = hits[coords[2]].values
+    content = hits[value].values
     
     fig  = plt.figure(figsize=(15, 15), frameon=False)
     gs   = fig.add_gridspec(2, 40)
@@ -322,9 +328,11 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     voxels to see them clearly.
     
     Args:
-        labelled_voxels: DATAFRAME
-    Output of one of the label_neighbours function. Contains all the voxeles labelled as pure MC class, their
-    neighbours and the ghost class.
+        labelled_voxels: DATAFRAME or list/tuple/array of lists/tuples/arrays in any combination
+    Output of one of the label_neighbours function (using DF). Contains all the voxeles labelled as pure MC 
+    class, their neighbours and the ghost class. 
+    If we choose not to use a DF we should input (x, y, z, E, segclass) because
+    in this function the segclass is always needed to separate the different classes.
         
         voxel_size: TUPLE
     Contains the voxel size of the detector for each coordinate. Used to create the labels.
@@ -354,17 +362,22 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
         opacity: LIST
     List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud].
     '''
+
+    if type(labelled_voxels) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_voxels).T
+        labelled_voxels = pd.DataFrame(coor, columns = coords + ['energy'] + ['segclass'])
     
-    #Escojo el minimo y el maximo por coordenada de ambos DF, ya que si no un df se desplaza respecto a otro (probablemente)
-    #De esta forma, el ''frame'' que calcula (nbins en cada coord) será el máximo siempre, y a las coordenadas a rellenar
-    #le restamos el mínimo de ambos DF ya que si le restamos a cada uno por su cuenta se desplza que era lo que me pasaba
-    #Entonces creo que con esto ya está la verdad
-
-
-    xmin, xmax = labelled_voxels[coords[0]].min(), labelled_voxels[coords[0]].max()
-    ymin, ymax = labelled_voxels[coords[1]].min(), labelled_voxels[coords[1]].max()
-    zmin, zmax = labelled_voxels[coords[2]].min(), labelled_voxels[coords[2]].max()
-
+    xcoord  = labelled_voxels[coords[0]].values
+    ycoord  = labelled_voxels[coords[1]].values
+    zcoord  = labelled_voxels[coords[2]].values
+    content = labelled_voxels[value[0]].values
+    
+    xmin, xmax = min(xcoord), max(xcoord)
+    ymin, ymax = min(ycoord), max(ycoord)
+    zmin, zmax = min(zcoord), max(zcoord)
+    
     labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
 
     nbinsX = int(np.ceil((xmax-xmin))) + 2
@@ -374,7 +387,6 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
     cloud    = labelled_voxels[np.isin(labelled_voxels.segclass, (4, 5, 6))] 
     ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
-    
         
     #CLOUD
     xarr = np.ones(shape=(nbinsX, nbinsY, nbinsZ))*th
@@ -490,19 +502,23 @@ def plot_adaption_hits_to_voxel_scale(event_hits, voxel_size, coords = ['x', 'y'
     return event_scaled_hits
 
 
-def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1]):
+def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, affluence = (2, 2, 2), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1, 1]):
     '''
     This function is made to plot the neighbour labelled hits (the cloud) with some transparency, and the hits 
     inside this cloud, to see how they agree. This is better than using the MC labels because it's difficult to
     see something this way, so these voxels will be mainly transparent when using this.
     
     Args:
-        labelled_voxels: DATAFRAME
-    Output of one of the label_neighbours function. Contains all the voxeles labelled as pure MC class, their
-    neighbours and the ghost class.
+        labelled_voxels: DATAFRAME or list/tuple/array of lists/tuples/arrays in any combination
+    Output of one of the label_neighbours function (using DF). Contains all the voxeles labelled as 
+    pure MC class, their neighbours and the ghost class. 
+    If we choose not to use a DF we should input (x, y, z, E, segclass) because in this function the 
+    segclass is always needed to separate the different classes.
         
-        labelled_hits: DATAFRAME
-    Second output of the labelling_MC function. Contains the MC hits with their segclass.
+        labelled_hits: DATAFRAME or list/tuple/array of lists/tuples/arrays in any combination
+    Second output of the labelling_MC function (using DF). Contains the MC hits with their segclass. 
+    If we don't use a DataFrame, the input must have the structure (x, y, z, content), where content 
+    is usually the energy or the segclass. Its shape will be (4, N).
     
         voxel_size: TUPLE
     Contains the voxel size of the detector for each coordinate. Used to create the labels and scale the hits.
@@ -530,7 +546,7 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     List with the colormap from the matplotlib library to use with each kind of voxels/hits: [MC, cloud, hits].
         
         opacity: LIST
-    List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud].
+    List with numbers from 0 to 1 (being 0 transparent and 1 opac), for both kind of voxels: [MC, cloud, hits].
     '''
     
     #Escojo el minimo y el maximo por coordenada de ambos DF, ya que si no un df se desplaza respecto a otro (probablemente)
@@ -538,9 +554,26 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     #le restamos el mínimo de ambos DF ya que si le restamos a cada uno por su cuenta se desplza que era lo que me pasaba
     #Entonces creo que con esto ya está la verdad
     
-    xmin, xmax = labelled_voxels[coords[0]].min(), labelled_voxels[coords[0]].max()
-    ymin, ymax = labelled_voxels[coords[1]].min(), labelled_voxels[coords[1]].max()
-    zmin, zmax = labelled_voxels[coords[2]].min(), labelled_voxels[coords[2]].max()
+    if type(labelled_voxels) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_voxels).T
+        labelled_voxels = pd.DataFrame(coor, columns = coords + ['energy'] + ['segclass'])
+    
+    if type(labelled_hits) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_hits).T
+        labelled_hits = pd.DataFrame(coor, columns = coords_mc + [value[2]])
+    
+    xcoord  = labelled_voxels[coords[0]].values
+    ycoord  = labelled_voxels[coords[1]].values
+    zcoord  = labelled_voxels[coords[2]].values
+    content = labelled_voxels[value[0]].values
+    
+    xmin, xmax = min(xcoord), max(xcoord)
+    ymin, ymax = min(ycoord), max(ycoord)
+    zmin, zmax = min(zcoord), max(zcoord)
     
     labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
     
@@ -627,7 +660,7 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, afflu
     colors = np.asarray(np.vectorize(m.to_rgba)(scaled_hits.loc[:, value[2]]))
     colors = np.rollaxis(colors, 0, 2)
 
-    ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=colors, marker='o')
+    ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=colors * opacity[2], marker='o')
     cb_hits = mpl.colorbar.ColorbarBase(axcb, cmap=cmap[2], norm=norm, orientation='vertical')
     
     ax.set_xlabel('X ')
