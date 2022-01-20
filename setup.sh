@@ -3,4 +3,6 @@
 export DLDIR=$HOME/data_labelling/
 export PYTHONPATH=$DLDIR:$PYTHONPATH
 export PATH=$DLDIR/bin:$PATH
+export PATH=$DLDIR/scripts:$PATH
+
 
