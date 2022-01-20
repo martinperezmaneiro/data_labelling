@@ -88,7 +88,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     #Tendremos 1 traza/evento
     tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
                                    (per_part_info.particle_name == 'e-') &\
-                                   (per_part_info.creator_proc  == 'compt')]
+                                   (per_part_info.creator_proc.isin(['compt', 'phot']))]
     
     tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
     
@@ -130,7 +130,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     hits_label_dist = calculate_track_distances(tracks_info, hits_label)
     
     #Escojo solo la información que me interesa
-    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
     
     return hits_label_dist
 
