@@ -32,9 +32,9 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     The classes are 1 - rest, 2 - track, 3 - blob.
     Rest class is assigned to every hit that is not in the main tracks. Track class is assigned to the
     hits of the  e- and e+ that come from a gamma conversion process (defined like that in Geant4) in the 
-    double scape case, and to the most energetic e- from a compton scattering proccess. Finally, the blob class
-    is chosen for the last hits of the track events that fulfill a specific condition given either by delta_loss
-    argument of the function or delta_e (explained in the Args part).
+    double scape case, and to the most energetic e- from a compton scattering proccess / photoelectric effect. 
+    Finally, the blob class is chosen for the last hits of the track events that fulfill a specific condition 
+    given either by delta_loss argument of the function or delta_e (explained in the Args part).
     It also computes the distance between the hits of the tracks (we take advantage of the tracks info 
     extraction being done here to perform this calculation)
     
