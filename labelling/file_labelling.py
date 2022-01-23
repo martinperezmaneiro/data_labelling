@@ -16,7 +16,8 @@ def label_file(directory,
                relabel = True,
                binclass = True,
                segclass = True, 
-               Rmax = np.nan):
+               Rmax = np.nan,
+               small_blob_th = 0.1):
     '''
     Function that performs the whole beersheba labelling. Starting from the MC hits, they are labelled in three
     classes (rest, track, blob) and voxelized with the labelling_MC function. Then, with the labelling_beersheba
@@ -67,6 +68,9 @@ def label_file(directory,
     
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
+
+        small_blob_th: FLOAT
+    Threshold for the energy of a group of blob hits to be marked as a small blob.
     
     RETURNS:
         labelled_MC_voxels: DATAFRAME
@@ -92,7 +96,8 @@ def label_file(directory,
                                                             start_bin, 
                                                             blob_ener_loss_th = blob_ener_loss_th, 
                                                             blob_ener_th = blob_ener_th, 
-                                                            Rmax = Rmax)
+                                                            Rmax = Rmax,
+                                                            small_blob_th = small_blob_th)
     
     if binclass and segclass:
         labelled_beersheba = labelling_beersheba(directory, 
@@ -117,7 +122,7 @@ def label_file(directory,
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba
 
 
-def create_final_dataframes(label_file_dfs, start_id, directory, total_size, voxel_size, start_bin, Rmax = np.nan): 
+def create_final_dataframes(label_file_dfs, start_id, directory, total_size, voxel_size, start_bin, Rmax = np.nan, blob_ener_loss_th = None, blob_ener_th = None, small_blob_th = None): 
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
     It will return a dataframe with the bins information of the voxelization of the hits, a dataframe with
@@ -145,6 +150,19 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
     
         start_bin: TUPLE
     Contains the first voxel position for each coordinate.
+
+        Rmax: FLOAT
+    Value for the fiducial cut.
+
+        blob_ener_loss_th: FLOAT
+    Threshold for the last hits of a track to become blob regarding the percentage of energy lost out of 
+    its total energy.
+
+        blob_ener_th: FLOAT
+    Threshold for the last hits of a track to become blob regarding a fixed value of energy.
+
+        small_blob_th: FLOAT
+    Threshold for the energy of a group of blob hits to be marked as a small blob.
     
     RETURNS:
         labelled_MC_voxels: DATAFRAME
@@ -211,7 +229,10 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
                           'size_z'  : size_z,
                           'max_z'   : max_z,
                           'nbins_z' : nbins_z,
-                          'Rmax'    : Rmax
+                          'Rmax'    : Rmax,
+                          'loss_th' : blob_ener_loss_th,
+                          'ener_th' : blob_ener_th,
+                          'sb_th'   : small_blob_th
                           }).to_frame().T
     
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo
