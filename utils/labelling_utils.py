@@ -247,9 +247,9 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
             
             # Ahora debemos escoger la etiqueta del voxel;
             # Primero miramos si es un blob pequeño, es decir que su posición en el histograma de small_b no sea cero
-            # Si eso se cumple, se asigna a selected_id la posición 2 (que se corresponde con la etiqueta blob)
+            # Si eso se cumple, se asigna a selected_id la última posición (que se corresponde con la etiqueta blob)
             if small_b_hist[nonzero_coors] != 0:
-                selected_id = 2
+                selected_id = -1
                 
             # Si no, mira la posición del elemento mayor en vox_eners
             else:
