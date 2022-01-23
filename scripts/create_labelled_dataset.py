@@ -77,23 +77,30 @@ if __name__ == "__main__":
                                     relabel = config.relabel,
                                     binclass = config.binclass,
                                     segclass = config.segclass,
-                                    Rmax = config.Rmax)
+                                    Rmax = config.Rmax,
+                                    small_blob_th = config.small_blob_th)
         labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo = create_final_dataframes(label_file_dfs,
                                                                                                                 start_id,
                                                                                                                 f,
                                                                                                                 total_size,
                                                                                                                 voxel_size,
                                                                                                                 start_bin,
-                                                                                                                Rmax = config.Rmax)
-        binsInfo  = binsInfo.drop(np.arange(1, len(binsInfo), 1), axis = 0)
+                                                                                                                Rmax = config.Rmax,
+                                                                                                                blob_ener_loss_th = config.blob_ener_loss_th,
+                                                                                                                blob_ener_th = config.blob_ener_th,
+                                                                                                                small_blob_th = config.small_blob_th)
         start_id +=len(eventInfo)
         with tb.open_file(fileout, 'a') as h5out:
             dio.df_writer(h5out, labelled_MC_hits  , 'DATASET', 'MCHits'         , columns_to_index=['dataset_id'])
             dio.df_writer(h5out, labelled_MC_voxels, 'DATASET', 'MCVoxels'       , columns_to_index=['dataset_id'])
             dio.df_writer(h5out, labelled_beersheba, 'DATASET', 'BeershebaVoxels', columns_to_index=['dataset_id'])
             dio.df_writer(h5out, eventInfo         , 'DATASET', 'EventsInfo'     , columns_to_index=['dataset_id'], str_col_length=128)
-            dio.df_writer(h5out, binsInfo          , 'DATASET', 'BinsInfo')
+            #dio.df_writer(h5out, binsInfo          , 'DATASET', 'BinsInfo')
         print((time() - start_time)/60, 'mins')
+
+    #I try writing here bins info to get only one line in the final dataframe
+    with tb.open_file(fileout, 'a') as h5out:
+        dio.df_writer(h5out, binsInfo          , 'DATASET', 'BinsInfo')
     #Ahora supuestamente los dfs marcados con columns_to_index con la siguiente función harían que la columna escogida pasara a ser su index
     #Pero creo que no funciona porque usan algo como .attr para sacar los atributos de cada df y yo probé y me dan vacíos, cuando entiendo que
     #deberían ser el columns_to_index para que haga algún cambio (mirar la función en IC para entender a lo que me refiero)
