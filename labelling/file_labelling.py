@@ -2,6 +2,8 @@ import pandas as pd
 import numpy  as np
 import os
 
+from invisible_cities.io          import dst_io as dio
+
 from labelling.MClabelling        import labelling_MC
 from labelling.beershebalabelling import labelling_beersheba
 
@@ -122,7 +124,17 @@ def label_file(directory,
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba
 
 
-def create_final_dataframes(label_file_dfs, start_id, directory, total_size, voxel_size, start_bin, Rmax = np.nan, blob_ener_loss_th = None, blob_ener_th = None, small_blob_th = None): 
+def create_final_dataframes(label_file_dfs,
+                            start_id,
+                            directory,
+                            total_size,
+                            voxel_size,
+                            start_bin,
+                            Rmax = np.nan,
+                            blob_ener_loss_th = None,
+                            blob_ener_th = None,
+                            small_blob_th = None,
+                            add_isaura_info = False): 
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
     It will return a dataframe with the bins information of the voxelization of the hits, a dataframe with
@@ -163,6 +175,10 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
 
         small_blob_th: FLOAT
     Threshold for the energy of a group of blob hits to be marked as a small blob.
+
+        add_isaura_info: BOOL
+    If True, it means that we have the isaura files in an analogue path to the beersheba file we are 
+    labelling (changing beersheba for isaura), and we are going to add another DataFrame with this information.
     
     RETURNS:
         labelled_MC_voxels: DATAFRAME
@@ -186,6 +202,10 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
     
         binsInfo: DATAFRAME
     Contains the voxelization information and the value of the fiducial cut.
+
+        isauraInfo: DATAFRAME
+    Contains the isaura tracks information with a dataset_id to relate it to all the other event info. If 
+    add_isaura_info is False or the isaura directory is not correct, it returns an empty dataframe.
     '''
     
     labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = label_file_dfs
@@ -208,7 +228,13 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
         else:
             labelled_beersheba = labelled_beersheba.assign(dataset_id = labelled_beersheba.event_id.map(dct_map))
             labelled_beersheba = labelled_beersheba.drop('event_id', axis=1)
-    
+
+        if add_isaura_info:
+            isauraInfo = get_isaura_info(directory, dct_map)
+            isauraInfo = isauraInfo[['dataset_id'] + [col for col in isauraInfo.columns if col != 'dataset_id']]
+        else:
+            isauraInfo = pd.DataFrame()
+            
     min_x, min_y, min_z       = start_bin[0], start_bin[1], start_bin[2]
     total_x, total_y, total_z = total_size[0], total_size[1], total_size[2]
     max_x, max_y, max_z       = min_x + total_x, min_y + total_y, min_z + total_z 
@@ -235,4 +261,39 @@ def create_final_dataframes(label_file_dfs, start_id, directory, total_size, vox
                           'sb_th'   : small_blob_th
                           }).to_frame().T
     
-    return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo
+    return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo
+
+
+def get_isaura_info(directory, dct_map):
+    '''
+    This function will get the isaura tracking info and add the corresponding dataset_id so we have
+    it in the final file. If the isaura file does not exist, it returns an empty dataframe.
+     
+    Args:
+        directory: STR
+    Path to the beersheba file we are currently labelling/working with. Needs to have the same structure
+    as the isaura path, but changing the names of the cities in order to work.
+
+        dct_map: DICT
+    Map of the event_id of a individual file to the dataset_id we have as a grouped file.
+
+    RETURNS:
+        isaura_info: DATAFRAME
+    Contains the tracks info of the isaura output with the corresponding dataset_id for each track.
+    '''
+    
+    #I change the directory name to the one that contains isauras
+    isaura_path = directory.replace('beersheba', 'isaura')
+
+    if os.path.isfile(isaura_path):
+        #Loading the track info dataframe
+        isaura_info = dio.load_dst(isaura_path, 'Tracking', 'Tracks')
+
+        #Mapping the event number with the dataset_id
+        isaura_info = isaura_info.assign(dataset_id = isaura_info.event.map(dct_map))
+
+    #If the file does not exist, we create an empty DF
+    else:
+        isaura_info = pd.DataFrame()
+        
+    return isaura_info
