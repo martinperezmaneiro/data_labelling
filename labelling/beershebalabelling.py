@@ -63,7 +63,7 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
         #if event_id % 50 == 0:
         #    print(event_id)
     
-        event_neighbours_labelled = label_neighbours_function(df, detector_bins, voxel_size, nlabel_dict)
+        event_neighbours_labelled = label_neighbours_function(df, detector_bins, voxel_size, start_bin, nlabel_dict)
         mc_beersh_voxels = mc_beersh_voxels.merge(event_neighbours_labelled.segclass, 
                                                   left_index = True, 
                                                   right_index = True, 

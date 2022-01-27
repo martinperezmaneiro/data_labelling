@@ -83,8 +83,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
     voxelization_df.reset_index()
     
     #Con esto reducimos los voxeles a meros puntos por sencillez, ya que nos deshacemos del tamaño de voxel
+    #y ponemos su origen en 0
     #(el tamaño se tuvo ya en cuenta en la voxelizacion y por tanto ahora esto es indiferente)
-    for coord, size in zip(['x', 'y', 'z'], voxel_size):
+    for coord, (size, start) in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
+        voxelization_df[coord] = voxelization_df[coord] - start
         voxelization_df[coord] = voxelization_df[coord] / size
 
     #Hacemos enteras las coord y labels
