@@ -3,11 +3,11 @@ import pandas as pd
 
 from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts, add_small_blob_mask
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan):
+def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, small_blob_th = 0.1):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy 
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling. 
@@ -34,6 +34,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
 
+        small_blob_th: FLOAT
+    Threshold for the energy of a group of blob hits to become marked as small.
+
     RETURNS:
         voxelization_df: DATAFRAME
     It contains the positions, energies and labels for each voxel of each event in a single file.
@@ -55,6 +58,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
 
     #Hacemos los cortes en los hits
     labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
+
+    #Hacemos la máscara de blob pequeño
+    labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
     
     #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
     voxelization_df = pd.DataFrame()
@@ -68,8 +74,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, blob_ener_loss_th
         mcenes   = np.array(event_hits['energy'])
         labels   = np.array(event_hits['segclass'])
         binclass = np.array(event_hits['binclass'])[0]
+        small_b  = np.array(event_hits['small_b'])
         
-        label_histo, ener_histo, ratio_histo = voxel_labelling_MC(img, mccoors, mcenes, labels, bins)
+        label_histo, ener_histo, ratio_histo = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b,  bins)
         
         voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, bins, binnum = binclass))
     

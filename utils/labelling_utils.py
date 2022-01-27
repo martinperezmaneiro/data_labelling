@@ -32,9 +32,9 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     The classes are 1 - rest, 2 - track, 3 - blob.
     Rest class is assigned to every hit that is not in the main tracks. Track class is assigned to the
     hits of the  e- and e+ that come from a gamma conversion process (defined like that in Geant4) in the 
-    double scape case, and to the most energetic e- from a compton scattering proccess. Finally, the blob class
-    is chosen for the last hits of the track events that fulfill a specific condition given either by delta_loss
-    argument of the function or delta_e (explained in the Args part).
+    double scape case, and to the most energetic e- from a compton scattering proccess / photoelectric effect. 
+    Finally, the blob class is chosen for the last hits of the track events that fulfill a specific condition 
+    given either by delta_loss argument of the function or delta_e (explained in the Args part).
     It also computes the distance between the hits of the tracks (we take advantage of the tracks info 
     extraction being done here to perform this calculation)
     
@@ -88,7 +88,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     #Tendremos 1 traza/evento
     tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
                                    (per_part_info.particle_name == 'e-') &\
-                                   (per_part_info.creator_proc  == 'compt')]
+                                   (per_part_info.creator_proc.isin(['compt', 'phot']))]
     
     tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
     
@@ -130,7 +130,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     hits_label_dist = calculate_track_distances(tracks_info, hits_label)
     
     #Escojo solo la información que me interesa
-    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
     
     return hits_label_dist
 
@@ -158,10 +158,11 @@ def add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = None, blob_ener_th = 
     return hits_clf_seg
 
 
-def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
+def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
     '''
     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
-    The bins of this histogram will take the value of the ID hits that deposit more energy within them.
+    The bins of this histogram will take the value of the ID hits that deposit more energy within them, or those
+    marked in the small_b_mask array.
     So, this function takes mainly Monte Carlo hits with a defined segmentation class and voxelizes them.
     
     i.e., in a voxel with several hits, the function will label the voxel as the kind of hit that layed more energy,
@@ -187,6 +188,9 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
         hits_id: NUMPYARRAY
     IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
     
+        small_b_mask: NUMPYARRAY
+    Mask for the blob groups of hits with very little energy, so we assure them to appear in the final voxeling
+    
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
     
@@ -207,8 +211,9 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     mc_hit_portion = np.zeros(img.shape)   #array 3d a llenar con el porcentaje de energía de la total que se lleva la partícula más importante
     unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
     
-    mc_hit_ener    = mcimg(mccoors, mcenes, bins) #histograma de energías 
-
+    mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías 
+    small_b_hist, _ = np.histogramdd(mccoors, bins, weights = small_b_mask) #histograma con los hits de blobs pequeños
+    
     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
     histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
 
@@ -236,10 +241,20 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
             vox_eners = [] #contenedor de los valores de voxel para todos los histogramas
             for histo in histograms:
                 vox_eners.append(histo[nonzero_coors]) 
-                
+            
             vox_eners = np.array(vox_eners)
             assert len(vox_eners) == len(unique_hits) 
-            selected_id = vox_eners.argmax() #mira la posición del elemento mayor en vox_eners
+            
+            # Ahora debemos escoger la etiqueta del voxel;
+            # Primero miramos si es un blob pequeño, es decir que su posición en el histograma de small_b no sea cero
+            # Si eso se cumple, se asigna a selected_id la última posición (que se corresponde con la etiqueta blob)
+            if small_b_hist[nonzero_coors] != 0:
+                selected_id = -1
+                
+            # Si no, mira la posición del elemento mayor en vox_eners
+            else:
+                selected_id = vox_eners.argmax() 
+            
             mc_hit_id[nonzero_coors] = unique_hits[selected_id]   #toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío 
             
             max_ener   = vox_eners[selected_id]     #energía de la partícula más importante en un voxel 
@@ -287,3 +302,33 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z']):
     hits_cut = hits[boundary_cut & fiducial_cut].reset_index(drop = True)
 
     return hits_cut
+
+def add_small_blob_mask(labelled_hits, small_blob_th = 0.1):
+    '''
+    Takes the add_hits_labels_MC output and creates a mask that marks all the small blob hits to make sure 
+    afterwards that they get representation in the voxelization.
+    
+    Args:
+        labelled_hits: DATAFRAME
+    Output of the add_hits_label_MC function.
+    
+        small_blob_th: FLOAT
+    Threshold for the energy of a group of blob hits to become marked.
+    
+    RETURNS:
+        labelled_hits: DATAFRAME
+    The same as in the input, but with a new column called small_b with the mask.
+    '''
+    
+    per_label_info = labelled_hits.groupby(['event_id',
+                                        'particle_id',
+                                        'segclass']).agg({'energy':[('group_ener', sum)]})
+    per_label_info.columns = per_label_info.columns.get_level_values(1)
+    per_label_info.reset_index(inplace=True)
+    
+    sb_mask = ((per_label_info.group_ener < small_blob_th) & (per_label_info.segclass == 3)).values
+    per_label_info['small_b'] = sb_mask
+    
+    labelled_hits = labelled_hits.merge(per_label_info, on = ['event_id', 'particle_id', 'segclass'])
+    
+    return labelled_hits
