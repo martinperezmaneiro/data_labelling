@@ -89,7 +89,7 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
         voxel_df.npeak = voxel_df.npeak - 1
     
     #Reduce the voxels to 1-1 size
-    for coord, size, start in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
+    for coord, (size, start) in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
         voxel_df[coord] = voxel_df[coord] - start
         voxel_df[coord] = voxel_df[coord] / size
         
