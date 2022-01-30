@@ -89,8 +89,7 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
         voxel_df.npeak = voxel_df.npeak - 1
     
     #Reduce the voxels to 1-1 size
-    for coord, size, start in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
-        voxel_df[coord] = voxel_df[coord] - start
+    for coord, size in zip(['x', 'y', 'z'], voxel_size):
         voxel_df[coord] = voxel_df[coord] / size
         
     #Make int all the necesary values
@@ -248,7 +247,7 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
     return merged_voxels
 
 
-def scale_bins(bins, voxel_size, start_bin):
+def scale_bins(bins, voxel_size):
     '''
     Scales the detector bins to unitary bins. If the input are already unitary bins, it does nothing.
     
@@ -258,18 +257,15 @@ def scale_bins(bins, voxel_size, start_bin):
     
         voxel_size: TUPLE
     Size of the voxels in each dimension.
-
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
     
     RETURNS:
         bins: LIST OF ARRAYS
-    Returns the unitary bins as they are stored in the dataframes.
+    Returns the unitary bins.
     '''
     size = [abs(b[1] - b[0]) for b in bins]
     is_scaled = [True if s == 1 else False for s in size]
     if not np.array(is_scaled).any():
-        bins = [(b - st) / s for b, (s, st) in zip(bins, zip(voxel_size, start_bin))]
+        bins = [b / s for b, s in zip(bins, voxel_size)]
     return bins
 
 def assign_nlabels(label_dict = {'rest':1, 'track':2, 'blob':3}, 
@@ -447,7 +443,7 @@ def fill_df_with_nbours_ordered(mc_beersh_event, nbour_counts, nlabel_dict):
     return mc_beersh_event, empty_index
 
 
-def label_neighbours_ordered(mc_beersh_event, bins, voxel_size, start_bin,  nlabel_dict, ghost_class = 7):
+def label_neighbours_ordered(mc_beersh_event, bins, voxel_size, nlabel_dict, ghost_class = 7):
     '''
     Takes an event of beersheba primary labelled (only with the main segclass) and assigns neighbour 
     classes to the empty voxels. It uses the fill_df_with_nbours_ordered function, that particularly fills
@@ -472,7 +468,7 @@ def label_neighbours_ordered(mc_beersh_event, bins, voxel_size, start_bin,  nlab
     '''
     
     coords = np.array(mc_beersh_event[['x', 'y', 'z']])
-    bins = scale_bins(bins, voxel_size, start_bin) 
+    bins = scale_bins(bins, voxel_size) 
     
     voxel_segclass = mc_beersh_event.segclass
     empty_index = []
