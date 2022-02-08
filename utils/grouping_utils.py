@@ -293,13 +293,65 @@ def transform_into_df(voxels_info,
 
 
 
+def count_blobs_from_labelling(grouped_voxels, blob_class = [3, 6], identifyer = 'dataset_id', seg_label = 'segclass'):
+    '''
+    This function takes the _count columns (which have the number of groups of a certain group,i.e. the number
+    of clouds or the number of a certain element of a certain class) and counts the blobs (number of groups of the 
+    element with segclass blob). Also, gives a True if the number of blobs counted corresponds to the binclas (2 blobs
+    for the 1 binclass, 1 blob for the 0 binclass), and a False if it doesn't, in the blob_success column.
+    
+    Args:
+        grouped_voxels: DATAFRAME
+    The final stage of the dataframe inside the label_event_elements function. It should have the elem_count column.
+    
+        blob_class: LIST
+    Contains the segclass values we want to count as a blob.
+    
+        identifyer: STR
+    Name for the column of the event identifyer.
+    
+        seg_label: STR
+    Name for the segclass column.
+    
+    RETURNS:
+        grouped_voxels: DATAFRAME
+    The same DF as the input with the nblob and blob_success columns.
+    '''
+    
+    blob_count_df = pd.DataFrame()
+    
+    for dat_id, event_df in grouped_voxels.groupby(identifyer):
+        nblob = event_df[np.isin(event_df[seg_label], blob_class)].elem_count.unique()
+        
+        if np.size(nblob) == 0:
+            nblob = np.array([0])
+        
+        blob_count = nblob == event_df.binclass.unique() + 1
+        blob_count_df = blob_count_df.append({identifyer: dat_id, 'nblob': nblob[0], 'blob_success': blob_count[0]}, ignore_index=True)
+    
+    #Make integer
+    for colname in blob_count_df.columns:
+        blob_count_df[colname] = pd.to_numeric(blob_count_df[colname], downcast = 'integer')
+    
+    #Make bool
+    blob_count_df['blob_success'] = blob_count_df['blob_success'].astype('bool')
+    
+    #Merge
+    grouped_voxels = grouped_voxels.merge(blob_count_df, on = [identifyer])
+    
+    return grouped_voxels
+
+
+
+
 def label_event_elements(labelled_voxels, 
                          max_distance, 
                          coords = ['x', 'y', 'z'], 
                          identifyer = 'dataset_id', 
                          ene_label = 'ener', 
                          seg_label = 'segclass',
-                         beersh_dict = None):
+                         beersh_dict = None, 
+                         blob_class = [3, 6]):
     '''
     The function performs the element (by segclass) and cloud labelling for a bunch of events.
     
@@ -327,7 +379,13 @@ def label_event_elements(labelled_voxels,
         beersh_dict: DICT or None
     Has the correspondance between classes, so we can group neighbour classes with original classes
     by asigning them the same number (i.e. the dict can have class 1 - other and class 4 - other neighbour marked
-    with the number 1, so they are grouped together by this algorythm). If None, the 
+    with the number 1, so they are grouped together by this algorythm). An example of this is using 
+    beersh_dict = {1:1, 2:2, 3:3, 4:1, 5:2, 6:3, 7:7}, so we can group beersheba label-like voxels. This will be
+    the main configuration for beersheba labelled voxels.
+    If None, the function will count the groups of exact segclass.
+    
+        blob_class: LIST
+    Contains the segclass values we want to count as a blob.
     
     RETURNS:
         output_df: DATAFRAME
