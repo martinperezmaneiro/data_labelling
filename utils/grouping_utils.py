@@ -56,7 +56,7 @@ def add_group_label(global_label, subgraphs, coords, group_label):
     
         group_label: STR
     Name for the new column that contains the new information about each group of voxels. We will
-    use 'element' for the small groups of voxels separated by class, and 'cloud' for each set of voxels
+    use 'elem' for the small groups of voxels separated by class, and 'cloud' for each set of voxels
     in an event that are close (usually we are going to find the main track and then some other small things)
     
     RETURNS:
@@ -185,7 +185,11 @@ def label_ordered_elements(df, max_distance, coords, ene_label, seg_label = 'seg
     
         #aqui va a ir la funcion de ordenar por energía!!
         subgraph_df = order_group_label(seg, seg_df, subgraph_df, coords, ene_label, group_label)
-    
+        
+        #Añadimos en una columna la información del número de elementos total (es decir, el numero de
+        #subgraphs para una etiqueta)
+        subgraph_df.insert(len(subgraph_df.columns), group_label + '_count', np.zeros(len(subgraph_df)) + len(subgraphs))
+
         #vamos juntando todos para tener al final un df completo
         df_element = df_element.append(subgraph_df)
     
@@ -240,6 +244,10 @@ def label_ordered_clouds(df, max_distance, coords, ene_label, group_label = 'clo
     #Ordeno las clouds de mayor a menor energía
     subgraph_df = order_group_label(cloud_label, df, subgraph_df, coords, ene_label, group_label)
     
+    #Añadimos en una columna la información del número de elementos total (es decir, el numero de
+    #subgraphs para una etiqueta)
+    subgraph_df.insert(len(subgraph_df.columns), group_label + '_count', np.zeros(len(subgraph_df)) + len(subgraphs))
+
     #Uno esta nueva información al df principal
     df = df.merge(subgraph_df, on = coords)
     return df
