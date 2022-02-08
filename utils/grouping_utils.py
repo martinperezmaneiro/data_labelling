@@ -358,5 +358,10 @@ def label_event_elements(labelled_voxels,
     #We drop this auxiliary column
     if beersh_dict != None:
         output_df = output_df.drop(seg_label, axis = 1)
+    
+    output_df = count_blobs_from_labelling(output_df, 
+                                           blob_class = blob_class, 
+                                           identifyer = identifyer, 
+                                           seg_label = seg_label)
         
     return output_df
