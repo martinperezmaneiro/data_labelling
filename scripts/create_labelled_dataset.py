@@ -25,6 +25,7 @@ It takes a CONFIG FILE with the following information:
  - segclass              - bool that indicates if the process does the segmentation labelling, requires binclass True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
  - small_blob_th         - energy threshold for the blob hits to be marked as small blobs, so the voxelization always represents them
+ - max_distance          - value of the maximum distance between voxels to perform the group counting algorythm, usually sqrt(3); if None, grouping is not performed
  - add_isaura_info       - bool that indicates if we want to add the isaura tracks info to the file; we need to have the isaura
                            files in an analogue directory as the beersheba files_in (that just changes the name of the cities in it)
 """
@@ -42,6 +43,7 @@ from invisible_cities.core  .configure  import configure
 from invisible_cities.cities.components import index_tables
 
 from labelling.file_labelling import label_file, create_final_dataframes
+from utils.grouping_utils     import label_event_elements
 
 #We import the different functions to label the neighbours and create a dictionary with their keywords
 #For now we are only using one, but this is made just in case we want to add more
@@ -94,6 +96,11 @@ if __name__ == "__main__":
                                                                                                                             blob_ener_th = config.blob_ener_th,
                                                                                                                             small_blob_th = config.small_blob_th,
                                                                                                                             add_isaura_info = config.add_isaura_info)
+        if config.max_distance != None:
+            labelled_beersheba = label_event_elements(labelled_beersheba,
+                                                      config.max_distance,
+                                                      coords = ['xbin', 'ybin', 'zbin'],
+                                                      ene_label = 'energy')
         start_id +=len(eventInfo)
         with tb.open_file(fileout, 'a') as h5out:
             dio.df_writer(h5out, labelled_MC_hits  , 'DATASET', 'MCHits'         , columns_to_index=['dataset_id'])
