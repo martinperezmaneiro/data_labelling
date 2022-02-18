@@ -350,7 +350,7 @@ def label_event_elements(labelled_voxels,
                          identifyer = 'dataset_id', 
                          ene_label = 'ener', 
                          seg_label = 'segclass',
-                         beersh_dict = None, 
+                         beersh_dict =  {1:1, 2:2, 3:3, 4:1, 5:2, 6:3, 7:7}, 
                          blob_class = [3, 6]):
     '''
     The function performs the element (by segclass) and cloud labelling for a bunch of events.
