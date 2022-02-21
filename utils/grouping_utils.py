@@ -412,14 +412,13 @@ def label_event_elements(labelled_voxels,
         df_event  = label_ordered_clouds(df_event, max_distance, coords, ene_label)
         
         output_df = output_df.append(df_event, ignore_index=True)
-    
-    #We drop this auxiliary column
-    if beersh_dict != None:
-        output_df = output_df.drop(seg_label, axis = 1)
-    
+
     output_df = count_blobs_from_labelling(output_df, 
                                            blob_class = blob_class, 
                                            identifyer = identifyer, 
                                            seg_label = seg_label)
+    #We drop this auxiliary column
+    if beersh_dict != None:
+        output_df = output_df.drop(seg_label, axis = 1)
         
     return output_df
