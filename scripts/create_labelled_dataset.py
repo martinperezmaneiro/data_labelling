@@ -56,7 +56,7 @@ neighbours_functions_mapping = {'ordered':label_neighbours_ordered}
 if __name__ == "__main__":
     
     config   = configure(sys.argv).as_namespace
-    filesin  = glob(os.path.expandvars(config.files_in))
+    filesin  = np.sort(glob(os.path.expandvars(config.files_in)))
     fileout  = os.path.expandvars(config.file_out)
     start_id = 0
     if os.path.isfile(fileout):
