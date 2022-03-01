@@ -125,6 +125,15 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
         
     #Ahora, dentro de todos los hits, escojo los últimos hits de clase track que sumen menos de delta_e
     hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
+
+    #Cojo la informacion de las trazas que tienen blobs etiquetados y miro cuales de esas quedaron sin ningun blob 
+    blob_labelled_tracks = hits_label[hits_label.segclass == label_dict['blob']][['event_id', 'particle_id']].drop_duplicates()
+    missing_blob_mask = tracks_info[['event_id', 'particle_id']].merge(blob_labelled_tracks, how='left', indicator=True)._merge == 'left_only'
+    blobless_tracks = tracks_info[missing_blob_mask.values]
+
+    #Localizo los hits de esas trazas (que suelen ser muy pocos por cada traza) y los etiqueto todos como blob, así no queda ninguna traza sin blob
+    missing_hits_mask = hits_label[['event_id', 'particle_id']].merge(asym_tracks, how='left', indicator=True)._merge == 'both'
+    hits_label.loc[(hits_label.segclass==label_dict['track'])& missing_hits_mask.values, 'segclass'] = label_dict['blob']
     
     #Calculo la distancia entre hits de las trazas y lo añado al df de información que tenía
     hits_label_dist = calculate_track_distances(tracks_info, hits_label)
