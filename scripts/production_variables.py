@@ -4,7 +4,7 @@ import re
 
 
 #Directory that will contain the created jobs/configs and the output files
-basedir = os.path.expandvars("/Users/mperez/NEXT/data_labelling/examples/bersh_labelling_example")
+basedir = os.path.expandvars("/mnt/lustre/scratch/home/usc/ie/mpm/beersh_labelling_4mm_fid_corrected")
 
 #Part of the in/out filename
 tag = "Tl208_NEW_v1_03_01_nexus_v5_03_04"
@@ -13,20 +13,20 @@ tag = "Tl208_NEW_v1_03_01_nexus_v5_03_04"
 queue_limit = 198
 
 #directory of the job and config templates, write / at the end
-jobTemp_dir = os.path.expandvars("/Users/mperez/NEXT/data_labelling/templates/")
-configTemp_dir = os.path.expandvars("/Users/mperez/NEXT/data_labelling/templates/")
+jobTemp_dir    = os.path.expandvars("/home/usc/ie/mpm/data_labelling/templates/")
+configTemp_dir = os.path.expandvars("/home/usc/ie/mpm/data_labelling/templates/")
 
 #name for the in/out files and names of the job/config templates
 in_filename         = "{tag}_cut{cutnum}.beersheba_*.root.h5"
-out_filename        = "{tag}_cut{cutnum}_labelled.h5"
+out_filename        = "{tag}_cut{cutnum}.beersheba_label_4mm_fid_corrected.h5"
 jobTemp_filename    = "jobTemplate.sh"
 configTemp_filename = "configTemplate.conf"
 
 #directory of the input files to be processed, remember to write / at the end
-indir = "/Users/mperez/NEXT/bersh_prod/prod_example/"
+indir = "/mnt/lustre/scratch/home/usc/ie/mpm/data_production_chain/prod/beersheba/"
 
 #path of the script to run
-scriptdir = "Users/mperez/NEXT/data_labelling/scripts/create_labelled_dataset.py"
+scriptdir = "/home/usc/ie/mpm/data_labelling/scripts/create_labelled_dataset.py"
 
 #function to get the cutnum and the num of each file
 def get_cut_and_num(filename):
@@ -70,7 +70,7 @@ proddir, jobsdir, confdir, logsdir = create_out_dirs()
 #takes all the .h5 files in the specified indir. we will make a loop on them, but as I
 #want to grab all the files with the same cut, in the job creator script I will assure that
 #once one cut job/config is created, no other configs are created
-files_in = glob.glob(indir + "/" + tag + "*.h5")
+files_in = glob.glob(indir + "/" + tag + "*.h5") #para que me haga todo poner *.h5 al final
 
 #for f in files_in: 
 #	check_filename_structure(f)
@@ -86,4 +86,4 @@ files_in = sorted(files_in, key = get_cut_and_num)
 #commands for CESGA
 queue_state_command = "squeue |grep usciempm |wc -l"
 joblaunch_command   = "sbatch {job_filename}"
-jobtime             = "1:30:00"
+jobtime             = "4:00:00"
