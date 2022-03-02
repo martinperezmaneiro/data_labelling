@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+'''
+This script creates a dataframe where each row has information for a certain file. The stored variables are:
+
+cut_id - the number of cut of the saved file
+nevent - number of events in this file
+signal_nevent - number of double scape events in the file
+nevent_bkg_lower_fail - number of background events with less than 1 blob
+nevent_bkg_upper_fail - number of background events with more than 1 blob
+nevent_sig_lower_fail - number of doublescape events with less than 2 blobs
+nevent_sig_upper_fail - number of doublescape events with more than 2 blobs
+
+'''
+
 import os
 import re
 
