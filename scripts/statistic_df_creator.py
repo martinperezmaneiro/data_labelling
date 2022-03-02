@@ -31,8 +31,8 @@ fileout  = os.path.expandvars('/Users/mperez/NEXT/data_labelling/examples/h5file
 df = pd.DataFrame()
 
 for i, file in enumerate(filesin):
-    cut = file.split("/")[-1].split("_")[1]  #for my test files
-    #cut = file.split('/')[-1].split('.')[0].split('_')[-1]  #for CESGA beersheba labelled files
+    #cut = file.split("/")[-1].split("_")[1]  #for my test files
+    cut = file.split('/')[-1].split('.')[0].split('_')[-1]  #for CESGA beersheba labelled files
     match = re.match(r"([a-z]+)([0-9]+)", cut, re.I)
     if match:
         items = match.groups()
