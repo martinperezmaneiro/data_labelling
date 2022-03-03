@@ -48,18 +48,18 @@ for i, file in enumerate(filesin):
     
     signal_nevent = sum(beersh_vox[['dataset_id', 'binclass']].drop_duplicates().binclass) 
 
-    fail_event_rate = len(beersh_vox[beersh_vox.blob_success == False].dataset_id.unique())
+    fail_nevent = len(beersh_vox[beersh_vox.blob_success == False].dataset_id.unique())
     
     nevent_bkg_lower_fail = len(beersh_vox[(beersh_vox.nblob < 1) & (beersh_vox.binclass == 0)].dataset_id.unique()) 
     nevent_bkg_upper_fail = len(beersh_vox[(beersh_vox.nblob > 1) & (beersh_vox.binclass == 0)].dataset_id.unique()) 
     nevent_sig_lower_fail = len(beersh_vox[(beersh_vox.nblob < 2) & (beersh_vox.binclass == 1)].dataset_id.unique()) 
     nevent_sig_upper_fail = len(beersh_vox[(beersh_vox.nblob > 2) & (beersh_vox.binclass == 1)].dataset_id.unique()) 
 
-    assert fail_event_rate == nevent_bkg_lower_fail + nevent_bkg_upper_fail + nevent_sig_lower_fail + nevent_sig_upper_fail
+    assert fail_nevent == nevent_bkg_lower_fail + nevent_bkg_upper_fail + nevent_sig_lower_fail + nevent_sig_upper_fail
     df = pd.DataFrame([{'cut_id':cut_id,
                         'nevent':nevent,
                         'signal_nevent':signal_nevent,
-                        'fail_event_rate':fail_event_rate,
+                        'fail_nevent':fail_nevent,
                         'nevent_bkg_lower_fail':nevent_bkg_lower_fail, 
                         'nevent_bkg_upper_fail':nevent_bkg_upper_fail, 
                         'nevent_sig_lower_fail':nevent_sig_lower_fail,  
