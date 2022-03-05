@@ -4,7 +4,7 @@ This script creates hdf5 files that contains:
  - DATASET/MCHits          - MC hits table with segmentation labels
  - DATASET/MCVoxels        - voxelized MC hits table with segmentation labels
  - DATASET/BeershebaVoxels - voxelized beersheba hits table with segmentation labels
- - DATASET/EventsInfo      - table that contains EventID, source directory and  binary classification label
+ - DATASET/EventsInfo      - table that contains EventID, source and destination directory, and  binary classification label
  - DATASET/BinInfo         - table that stores info about bins
  - DATASET/IsauraInfo      - if added, table that contains the isaura tracks info
 
@@ -88,6 +88,7 @@ if __name__ == "__main__":
         labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo = create_final_dataframes(label_file_dfs,
                                                                                                                             start_id,
                                                                                                                             f,
+                                                                                                                            fileout,
                                                                                                                             total_size,
                                                                                                                             voxel_size,
                                                                                                                             start_bin,
