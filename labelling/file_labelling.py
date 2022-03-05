@@ -127,6 +127,7 @@ def label_file(directory,
 def create_final_dataframes(label_file_dfs,
                             start_id,
                             directory,
+                            destination_directory,
                             total_size,
                             voxel_size,
                             start_bin,
@@ -153,6 +154,11 @@ def create_final_dataframes(label_file_dfs,
     
         directory: STR
     Directory of the current file labelled to add its information to the event information df.
+
+        destination_directory: STR
+    Directory where the final information is stored. This is created because when merging all the files to train
+    the neural network, we will try to get the minimum vaulable information, and so we can keep track and link
+    the big file with a file that contains more labelling information.
     
         total_size: TUPLE 
     Contains the max size of the detector.
@@ -197,8 +203,8 @@ def create_final_dataframes(label_file_dfs,
     that maps each voxel with the event information.
     
         eventInfo: DATAFRAME
-    Contains the information for each event: its original file directory, its event_id and a dataset_id that 
-    maps every hit/voxel with them.
+    Contains the information for each event: its original and destination file directory, its event_id
+    and a dataset_id that maps every hit/voxel with them.
     
         binsInfo: DATAFRAME
     Contains the voxelization information and the value of the fiducial cut.
@@ -215,7 +221,12 @@ def create_final_dataframes(label_file_dfs,
         eventInfo = labelled_MC_voxels[['event_id', 'binclass']].drop_duplicates().reset_index(drop=True)
         dct_map = {eventInfo.iloc[i].event_id : i + start_id for i in range(len(eventInfo))}
         pathname, basename = os.path.split(directory)
-        eventInfo = eventInfo.assign(pathname = pathname, basename = basename, dataset_id = eventInfo.event_id.map(dct_map))
+        label_pathname, label_basename = os.path.split(destination_directory)
+        eventInfo = eventInfo.assign(dataset_id = eventInfo.event_id.map(dct_map),
+                                     pathname = pathname,
+                                     basename = basename,
+                                     label_pathname = label_pathname,
+                                     label_basename = label_basename)
         
         labelled_MC_voxels = labelled_MC_voxels.assign(dataset_id = labelled_MC_voxels.event_id.map(dct_map))
         labelled_MC_hits   = labelled_MC_hits.assign(dataset_id   = labelled_MC_hits.event_id.map(dct_map))
