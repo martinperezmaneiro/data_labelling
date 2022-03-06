@@ -10,25 +10,19 @@ It takes a CONFIG FILE with the following information:
  - files_in   - string with the beersheba files we want to join
  - file_out   - string with the final destination file
  - tag        - string that is a general file identificator, the same for all the incoming files
- - voxel_type - either VoxelType.MC or VoxelType.Beersheba
+ - voxel_type - either 'MC' or 'Beersheba'
 """
 
 
 import tables as tb
 from   glob   import glob
-from   enum   import auto
 import re
 import os
 import sys
 from invisible_cities.core  .configure import configure
-from invisible_cities.types.ic_types import AutoNameEnumBase
 import invisible_cities.io.dst_io as dio
 
-class VoxelType(AutoNameEnumBase):
-    MC = auto()
-    Beersheba = auto()
-
-if __name__ == "__main__":
+if __name__ == "__main__":    
     config  = configure(sys.argv).as_namespace
     filesin = glob(os.path.expandvars(config.files_in))
     fout = os.path.expandvars(config.file_out)
@@ -44,11 +38,11 @@ if __name__ == "__main__":
         h5in.copy_file(fout, overwrite=True)
 
     #Now choose the table path for the kept voxels and for the deleted ones (we just have to delete them for the first file)
-    if config.voxel_type == VoxelType.MC:
+    if config.voxel_type == 'MC':
         voxel_tbpath = 'DATASET/MCVoxels'
         delete_voxel_tbpath = '/DATASET/BeershebaVoxels'
 
-    if config.voxel_type == VoxelType.Beersheba:
+    if config.voxel_type == 'Beersheba':
         voxel_tbpath = 'DATASET/BeershebaVoxels'
         delete_voxel_tbpath = '/DATASET/MCVoxels'
 
