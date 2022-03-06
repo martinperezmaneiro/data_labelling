@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     #Now choose the table path for the kept voxels and for the deleted ones (we just have to delete them for the first file)
     if config.voxel_type == 'MC':
-        voxel_tbpath = 'DATASET/MCVoxels'
+        voxel_tbpath = '/DATASET/MCVoxels'
         delete_voxel_tbpath = '/DATASET/BeershebaVoxels'
 
     if config.voxel_type == 'Beersheba':
