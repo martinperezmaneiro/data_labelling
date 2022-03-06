@@ -10,17 +10,23 @@ It takes a CONFIG FILE with the following information:
  - files_in   - string with the beersheba files we want to join
  - file_out   - string with the final destination file
  - tag        - string that is a general file identificator, the same for all the incoming files
- - voxel_type - either 'MCVoxels' or 'BeershebaVoxels', the two options we have
+ - voxel_type - either VoxelType.MC or VoxelType.Beersheba
 """
 
 
 import tables as tb
 from   glob   import glob
+from   enum   import auto
 import re
 import os
 import sys
 from invisible_cities.core  .configure import configure
+from invisible_cities.types.ic_types import AutoNameEnumBase
 import invisible_cities.io.dst_io as dio
+
+class VoxelType(AutoNameEnumBase):
+    MC = auto()
+    Beersheba = auto()
 
 if __name__ == "__main__":
     config  = configure(sys.argv).as_namespace
@@ -32,54 +38,55 @@ if __name__ == "__main__":
                                        x.split('/')[-1].replace(tag, '').split('.')[0], re.I).groups()[-1])
     
     files_to_merge = sorted(filesin, key = get_cutnum)
-    print(files_to_merge)
 
-    #Now we set the table path to the desired voxel type and the eventinfo
-    group_name, voxel_type, bin_info, event_info = 'DATASET', config.voxel_type, 'BinsInfo', 'EventsInfo'
-    
-    voxels_tbpath = '/' + group_name + '/' + voxel_type
-    events_tbpath = '/' + group_name + '/' + event_info
+    #We copy in the output file the initial file information and delete the non wanted dataframes
+    with tb.open_file(files_to_merge[0], 'r') as h5in:
+        h5in.copy_file(fout, overwrite=True)
 
-    #We save in the output file the initial file information
-    initial_file = files_to_merge[0]
-    voxels = dio.load_dst(initial_file, group_name, voxel_type)
-    bininf = dio.load_dst(initial_file, group_name, bin_info)
-    events = dio.load_dst(initial_file, group_name, event_info)
-    
+    #Now choose the table path for the kept voxels and for the deleted ones (we just have to delete them for the first file)
+    if config.voxel_type == VoxelType.MC:
+        voxel_tbpath = 'DATASET/MCVoxels'
+        delete_voxel_tbpath = '/DATASET/BeershebaVoxels'
+
+    if config.voxel_type == VoxelType.Beersheba:
+        voxel_tbpath = 'DATASET/BeershebaVoxels'
+        delete_voxel_tbpath = '/DATASET/MCVoxels'
+
+    #Deleting the unwanted tables
     with tb.open_file(fout, 'a') as h5out:
-        dio.df_writer(h5out, voxels, group_name, voxel_type, columns_to_index=['dataset_id'])
-        dio.df_writer(h5out, bininf, group_name, bin_info,   columns_to_index=['dataset_id'])
-        dio.df_writer(h5out, events, group_name, event_info, columns_to_index=['dataset_id'], str_col_length=64)
+        h5out.remove_node(h5out.get_node(delete_voxel_tbpath))
+        h5out.remove_node(h5out.get_node('/DATASET/MCHits'))
+        h5out.remove_node(h5out.get_node('/DATASET/IsauraInfo'))
 
     #Now check that it starts from 0 in the file out
     with tb.open_file(fout, 'r+') as h5out:
-        min_dataset_id = h5out.get_node(events_tbpath).cols.dataset_id[0]
+        min_dataset_id = h5out.get_node('/DATASET/EventsInfo').cols.dataset_id[0]
 
         if min_dataset_id>0:
-            h5out.get_node(events_tbpath).cols.dataset_id[:]-=min_dataset_id
-            h5out.get_node(voxels_tbpath).cols.dataset_id[:]-=min_dataset_id
-            h5out.get_node(events_tbpath).flush()
-            h5out.get_node(voxels_tbpath).flush()
+            h5out.get_node('/DATASET/EventsInfo').cols.dataset_id[:]-=min_dataset_id
+            h5out.get_node(voxel_tbpath).cols.dataset_id[:]-=min_dataset_id
+            h5out.get_node('/DATASET/EventsInfo').flush()
+            h5out.get_node(voxel_tbpath).flush()
 
     #Now we do a loop on the other files to fill the output file
     for filein in files_to_merge[1:]:
         print(filein)
         with tb.open_file(fout, 'a') as h5out:
             with tb.open_file(filein, 'r') as h5in:
-                prev_id =  h5out.get_node(events_tbpath).cols.dataset_id[-1]+1
+                prev_id =  h5out.get_node('/DATASET/EventsInfo').cols.dataset_id[-1]+1
 
-                evs = h5in.get_node(events_tbpath)[:]
+                evs = h5in.get_node('/DATASET/EventsInfo')[:]
                 file_start_id = evs['dataset_id'][0]
                 evs['dataset_id']+=prev_id-file_start_id
-                h5out.get_node(events_tbpath).append(evs)
-                h5out.get_node(events_tbpath).flush()
+                h5out.get_node('/DATASET/EventsInfo').append(evs)
+                h5out.get_node('/DATASET/EventsInfo').flush()
                 del(evs)
-                voxs = h5in.get_node(voxels_tbpath)[:]
+                voxs = h5in.get_node(voxel_tbpath)[:]
                 voxs['dataset_id']+=prev_id
-                h5out.get_node(voxels_tbpath).append(voxs)
-                h5out.get_node(voxels_tbpath).flush()
+                h5out.get_node(voxel_tbpath).append(voxs)
+                h5out.get_node(voxel_tbpath).flush()
                 del(voxs)
 
     with tb.open_file(fout, 'r+') as h5out:
-        h5out.get_node(events_tbpath).cols.dataset_id.create_index()
-        h5out.get_node(voxels_tbpath).cols.dataset_id.create_index()
+        h5out.get_node('/DATASET/EventsInfo').cols.dataset_id.create_index()
+        h5out.get_node(voxel_tbpath).cols.dataset_id.create_index()
