@@ -43,7 +43,7 @@ if __name__ == "__main__":
         delete_voxel_tbpath = '/DATASET/BeershebaVoxels'
 
     if config.voxel_type == 'Beersheba':
-        voxel_tbpath = 'DATASET/BeershebaVoxels'
+        voxel_tbpath = '/DATASET/BeershebaVoxels'
         delete_voxel_tbpath = '/DATASET/MCVoxels'
 
     #Deleting the unwanted tables
