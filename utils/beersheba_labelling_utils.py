@@ -45,7 +45,11 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     detector_frame = container_creator(total_size, voxel_size)
     detector_bins  = bin_creator(detector_frame, steps = voxel_size, x0 = start_bin)
 
-    beersh_hits = hit_data_cuts(beersh_hits, detector_bins, Rmax = Rmax, coords = ['X', 'Y', 'Z'], identifier = 'event')
+    #beersh_hits = hit_data_cuts(beersh_hits, detector_bins, Rmax = Rmax, coords = ['X', 'Y', 'Z'], identifier = 'event')
+    #I perform the cut on beersheba data depending on the events that were cut
+    #for the MC because of the fiducial volume
+    labelled_vox_events = labelled_vox['event_id'].unique()
+    beersh_hits = beersh_hits[np.isin(beersh_hits['event'], labelled_vox_events)]
 
     binclass = np.array([])
     if labelled_vox.empty != True:
