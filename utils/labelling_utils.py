@@ -273,7 +273,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
     return mc_hit_id, mc_hit_ener, mc_hit_portion
 
 
-def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z']):
+def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifier = 'event_id'):
     '''
     This function performs the fiducial and boundary cuts to the input hits.
 
@@ -312,11 +312,11 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z']):
     #hits_cut = hits[boundary_cut & fiducial_cut].reset_index(drop = True)
 
     #Tomo los eventos que NO cumplieron los requisitos de los cortes
-    del_evs = hits[~(boundary_cut & fiducial_cut)]['event_id'].unique()
+    del_evs = hits[~(boundary_cut & fiducial_cut)][identifier].unique()
 
     #Del DF original tomo solo los hits de los eventos que cayeron en el volumen
     #fiducial
-    event_cut = hits[~np.isin(hits['event_id'], del_evs)]
+    event_cut = hits[~np.isin(hits[identifier], del_evs)]
 
     return event_cut
 
