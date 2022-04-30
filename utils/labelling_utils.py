@@ -312,11 +312,11 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z']):
     #hits_cut = hits[boundary_cut & fiducial_cut].reset_index(drop = True)
 
     #Tomo los eventos que NO cumplieron los requisitos de los cortes
-    del_evs = hits[~(boundary_cut & fiducial_cut)].dataset_id.unique()
+    del_evs = hits[~(boundary_cut & fiducial_cut)]['event_id'].unique()
 
     #Del DF original tomo solo los hits de los eventos que cayeron en el volumen
     #fiducial
-    event_cut = hits[~np.isin(hits.dataset_id, del_evs)]
+    event_cut = hits[~np.isin(hits['event_id'], del_evs)]
 
     return event_cut
 
