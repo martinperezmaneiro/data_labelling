@@ -263,7 +263,7 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     content = hits[value].values
 
     fig  = plt.figure(figsize=(8, 8), frameon=False)
-    gs   = fig.add_gridspec(0, 12)
+    gs   = fig.add_gridspec(1, 12)
     ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
     axcb = fig.add_subplot(gs[0, 11])
     norm = mpl.colors.Normalize(vmin=min(content), vmax=max(content))
