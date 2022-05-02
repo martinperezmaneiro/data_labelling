@@ -144,34 +144,26 @@ def plot_projections(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.
     plt.show()
 
 
-def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap=mpl.cm.jet, opacity = 1):
+def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 'z'], affluence = (5, 5, 5), th=0, edgecolor='k', linewidth = .3, cmap=mpl.cm.jet, opacity = 1):
     '''
     Function to plot voxels (they have to be normalized)
-
     Args:
         hits_digitized: DataFrame or list/tuple/array of lists/tuples/arrays in any combination
     Contains the spatial information of the voxels and their content. If we don't use a DataFrame, the input
     must have the structure (x, y, z, content), where content is usually the energy or the segclass. Its shape
     will be (4, N).
-
         value: STR
     Name of the content column in the DataFrame. Will be also the label of the colorbar.
-
         coords: LIST
     Name of the coords column in the DataFrame.
-
         th: FLOAT
     Low threshold of the content of the voxels to plot.
-
         edgecolor: STR
     Color of the edges of the voxels.
-
         linewidth: FLOAT
     Width of the edges of the voxels.
-
         cmap: matplotlib.cm
     Used colormap.
-
         opacity = FLOAT
     Value from 0 to 1 that indicates the opacity of the voxels.
     '''
@@ -191,6 +183,8 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     ymin, ymax = min(ycoord), max(ycoord)
     zmin, zmax = min(zcoord), max(zcoord)
 
+    labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
+
     nbinsX = int(np.ceil((xmax-xmin))) + 2
     nbinsY = int(np.ceil((ymax-ymin))) + 2
     nbinsZ = int(np.ceil((zmax-zmin))) + 2
@@ -205,10 +199,10 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     dim     = xarr.shape
     voxels  = xarr > th
 
-    fig  = plt.figure(figsize=(15, 15), frameon=False)
-    gs   = fig.add_gridspec(2, 40)
-    ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
-    axcb = fig.add_subplot(gs[0, 18])
+    fig  = plt.figure(figsize=(10, 10), frameon=False)
+    gs   = fig.add_gridspec(1, 12)
+    ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
+    axcb = fig.add_subplot(gs[0, 11])
     norm = mpl.colors.Normalize(vmin=xarr.min(), vmax=xarr.max())
     m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
 
@@ -221,8 +215,16 @@ def plot_3d_vox(hits_digitized, value='energy', coords = ['x', 'y', 'z'], th=0, 
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
     ax.set_zlabel('Z ')
-    cb.set_label (value)
+    cb.set_label (value, size = 15)
+    cb.ax.tick_params(labelsize=13)
 
+    ax.set_xticklabels(labels[0])
+    ax.set_xticks(ticks[0])
+    ax.set_yticklabels(labels[1])
+    ax.set_yticks(ticks[1])
+    ax.set_zticklabels(labels[2])
+    ax.set_zticks(ticks[2])
+    
     plt.show()
 
 
@@ -260,10 +262,10 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     zcoord  = hits[coords[2]].values
     content = hits[value].values
 
-    fig  = plt.figure(figsize=(15, 15), frameon=False)
-    gs   = fig.add_gridspec(2, 40)
-    ax   = fig.add_subplot(gs[0, 0:16], projection = '3d')
-    axcb = fig.add_subplot(gs[0, 18])
+    fig  = plt.figure(figsize=(10, 10), frameon=False)
+    gs   = fig.add_gridspec(1, 12)
+    ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
+    axcb = fig.add_subplot(gs[0, 11])
     norm = mpl.colors.Normalize(vmin=min(content), vmax=max(content))
 
     m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -278,10 +280,27 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
     ax.set_zlabel('Z ')
-    cb.set_label (value)
+    cb.set_label (value, size = 15)
+    cb.ax.tick_params(labelsize=13)
 
     plt.show()
 
+def plot_3d_hits_discrete(labelled_hits, value = 'segclass', coords = ['x', 'y', 'z']):
+
+    color_dict = {1:'deepskyblue', 2:'gold', 3:'tab:red', 4:'deepskyblue', 5:'gold', 6:'tab:red', 7:'tab:green'}
+
+    ax  = plt.figure(figsize=(10, 10), frameon=False).add_subplot(projection='3d')
+    hit_color = labelled_hits[value].map(color_dict)
+    ax.scatter(labelled_hits[coords[0]], labelled_hits[coords[1]], labelled_hits[coords[2]], c=hit_color, marker='o')
+    legend_elements = [Patch(facecolor='deepskyblue', label='other class'),
+                       Patch(facecolor='gold',        label='track class'),
+                       Patch(facecolor='tab:red',     label='blob class')]
+    ax.set_xlabel('X ')
+    ax.set_ylabel('Y ')
+    ax.set_zlabel('Z ')
+    ax.legend(handles=legend_elements, fontsize=15)
+
+    plt.show()
 
 def plot_label_creator(min_vals, max_vals, voxel_size, affluence):
     '''
@@ -473,7 +492,6 @@ def plot_cloud_voxels(labelled_voxels, voxel_size, affluence = (2, 2, 2), value 
     cb_cloud.set_label('cloud ' + value[1])
 
     plt.show()
-
 
 
 def plot_adaption_hits_to_voxel_scale(event_hits, voxel_size, start_bin, coords = ['x', 'y', 'z']):
@@ -688,5 +706,114 @@ def plot_cloud_voxels_and_hits(labelled_voxels, labelled_hits, voxel_size, start
         cb_hits.set_ticks([1, 2, 3])
         cb_hits.set_ticklabels([1, 2, 3])
     cb_hits.set_label('hits ' + value[2])
+
+    plt.show()
+
+def plot_cloud_voxels_and_hits_discrete(labelled_voxels, labelled_hits, voxel_size, start_bin, affluence = (5, 5, 5), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0, 1, 1]):
+    '''
+    '''
+
+    color_dict = {1:'deepskyblue', 2:'gold', 3:'tab:red', 4:'deepskyblue', 5:'gold', 6:'tab:red', 7:'tab:green'}
+
+    if type(labelled_voxels) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_voxels).T
+        labelled_voxels = pd.DataFrame(coor, columns = coords + ['energy'] + ['segclass'])
+
+    if type(labelled_hits) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_hits).T
+        labelled_hits = pd.DataFrame(coor, columns = coords_mc + [value[2]])
+
+    xcoord  = labelled_voxels[coords[0]].values
+    ycoord  = labelled_voxels[coords[1]].values
+    zcoord  = labelled_voxels[coords[2]].values
+    content = labelled_voxels[value[0]].values
+
+    xmin, xmax = min(xcoord), max(xcoord)
+    ymin, ymax = min(ycoord), max(ycoord)
+    zmin, zmax = min(zcoord), max(zcoord)
+
+    labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
+
+    nbinsX = int(np.ceil((xmax-xmin))) + 2
+    nbinsY = int(np.ceil((ymax-ymin))) + 2
+    nbinsZ = int(np.ceil((zmax-zmin))) + 2
+
+
+    mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    cloud    = labelled_voxels[np.isin(labelled_voxels.segclass, (4, 5, 6))]
+    ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
+
+
+    ax  = plt.figure(figsize=(10, 10), frameon=False).add_subplot(projection='3d')
+
+    #CLOUD
+    xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+    nonzeros = np.vstack([cloud[coords[0]].values-xmin,
+                          cloud[coords[1]].values-ymin,
+                          cloud[coords[2]].values-zmin])
+
+    xarr[tuple(nonzeros)] = cloud[value[1]].map(color_dict).values
+
+    ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth, alpha = opacity[1])
+
+    #MC
+    xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+    nonzeros = np.vstack([mc_label[coords[0]].values-xmin,
+                          mc_label[coords[1]].values-ymin,
+                          mc_label[coords[2]].values-zmin])
+
+    xarr[tuple(nonzeros)] = mc_label[value[0]].map(color_dict).values
+
+
+    ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth, alpha = opacity[0])
+
+    legend_elements = [Patch(facecolor='deepskyblue', label='other class'),
+                       Patch(facecolor='gold',        label='track class'),
+                       Patch(facecolor='tab:red',     label='blob class')]
+
+    #GHOST
+    if ghost.empty == False:
+        xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+        nonzeros = np.vstack([ghost[coords[0]].values-xmin,
+                              ghost[coords[1]].values-ymin,
+                              ghost[coords[2]].values-zmin])
+
+        xarr[tuple(nonzeros)] = ghost['segclass'].map(color_dict).values
+
+        ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth)
+
+        legend_elements.append(Patch(facecolor='tab:green',   label='ghost class'))
+
+
+    #HITS
+    if not labelled_hits.empty:
+        scaled_hits = plot_adaption_hits_to_voxel_scale(labelled_hits, voxel_size, start_bin)
+
+        hit_color = scaled_hits[value[2]].map(color_dict)
+        ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=hit_color, marker='o', alpha = opacity[2])
+
+
+    ax.set_xlabel('X ')
+    ax.set_ylabel('Y ')
+    ax.set_zlabel('Z ')
+
+
+
+    ax.legend(handles=legend_elements, fontsize=15)
+
+    ax.set_xticklabels(labels[0])
+    ax.set_xticks(ticks[0])
+    ax.set_yticklabels(labels[1])
+    ax.set_yticks(ticks[1])
+    ax.set_zticklabels(labels[2])
+    ax.set_zticks(ticks[2])
+
 
     plt.show()
