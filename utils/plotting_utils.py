@@ -199,7 +199,7 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     dim     = xarr.shape
     voxels  = xarr > th
 
-    fig  = plt.figure(figsize=(10, 10), frameon=False)
+    fig  = plt.figure(figsize=(8, 8), frameon=False)
     gs   = fig.add_gridspec(1, 12)
     ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
     axcb = fig.add_subplot(gs[0, 11])
@@ -224,7 +224,7 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     ax.set_yticks(ticks[1])
     ax.set_zticklabels(labels[2])
     ax.set_zticks(ticks[2])
-    
+
     plt.show()
 
 
@@ -262,8 +262,8 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     zcoord  = hits[coords[2]].values
     content = hits[value].values
 
-    fig  = plt.figure(figsize=(10, 10), frameon=False)
-    gs   = fig.add_gridspec(1, 12)
+    fig  = plt.figure(figsize=(8, 8), frameon=False)
+    gs   = fig.add_gridspec(0, 12)
     ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
     axcb = fig.add_subplot(gs[0, 11])
     norm = mpl.colors.Normalize(vmin=min(content), vmax=max(content))
@@ -289,7 +289,7 @@ def plot_3d_hits_discrete(labelled_hits, value = 'segclass', coords = ['x', 'y',
 
     color_dict = {1:'deepskyblue', 2:'gold', 3:'tab:red', 4:'deepskyblue', 5:'gold', 6:'tab:red', 7:'tab:green'}
 
-    ax  = plt.figure(figsize=(10, 10), frameon=False).add_subplot(projection='3d')
+    ax  = plt.figure(figsize=(8, 8), frameon=False).add_subplot(projection='3d')
     hit_color = labelled_hits[value].map(color_dict)
     ax.scatter(labelled_hits[coords[0]], labelled_hits[coords[1]], labelled_hits[coords[2]], c=hit_color, marker='o')
     legend_elements = [Patch(facecolor='deepskyblue', label='other class'),
@@ -748,7 +748,7 @@ def plot_cloud_voxels_and_hits_discrete(labelled_voxels, labelled_hits, voxel_si
     ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
 
 
-    ax  = plt.figure(figsize=(10, 10), frameon=False).add_subplot(projection='3d')
+    ax  = plt.figure(figsize=(8, 8), frameon=False).add_subplot(projection='3d')
 
     #CLOUD
     xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
