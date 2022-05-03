@@ -217,7 +217,8 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     ax.set_zlabel('Z ')
     cb.set_label (value, size = 15)
     cb.ax.tick_params(labelsize=13)
-
+    cb.formatter.set_powerlimits((0, 0))
+    
     ax.set_xticklabels(labels[0])
     ax.set_xticks(ticks[0])
     ax.set_yticklabels(labels[1])
@@ -282,7 +283,7 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     ax.set_zlabel('Z ')
     cb.set_label (value, size = 15)
     cb.ax.tick_params(labelsize=13)
-
+    cb.formatter.set_powerlimits((0, 0))
     plt.show()
 
 def plot_3d_hits_discrete(labelled_hits, value = 'segclass', coords = ['x', 'y', 'z']):
