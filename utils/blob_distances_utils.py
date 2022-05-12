@@ -4,21 +4,21 @@ import numpy as np
 import invisible_cities.io.dst_io as dio
 
 
-def add_track_start_points(file):
+def add_track_start_points(mchits, isaura_info):
     '''
     Function to extract from the MCHits DataFrame the starting point of a background track.
 
     Args:
-        file: STR
-    Path to the labelled file with the isaura information.
+        mchits: pd.DataFrame
+    MC hits from the labelled file.
+
+        isaura_info: pd.DataFrame
+    Isaura track info from the labelled file.
 
     RETURNS:
         isaura_info_start: pd.DataFrame
     Contains the isaura info and the track start (just for the background tracks)
     '''
-
-    mchits = dio.load_dst(file, 'DATASET', 'MCHits')
-    isaura_info = dio.load_dst(file, 'DATASET', 'IsauraInfo')
 
     track_start = mchits[(mchits.binclass == 0) & (mchits.segclass == 2) & (mchits.hit_id == 0)][['dataset_id', 'x', 'y', 'z']]
 
@@ -299,15 +299,24 @@ def take_best_dist_outcome(dist_blob_df):
 
     return dist_blob_df
 
-def get_dist_blob_isaura(file):
+def get_dist_blob_isaura(mchits, beersh_voxels, isaura_info, bins_info):
     '''
     Searchs for the barycenters of the blob elements in an event and performs
     the whole distance comparison between the barycenters of the label blobs
     and the isaura blobs.
 
     Args:
-        file: STR
-    Directory of the labelled data.
+        mchits: pd.DataFrame
+    MC hits from the labelled file.
+
+        beersh_voxels: pd.DataFrame
+    Beersheba voxels from the labelled file.
+
+        isaura_info: pd.DataFrame
+    Isaura track info from the labelled file.
+
+        bins_info: pd.DataFrame
+    Voxel information from the labelled file.
 
     RETURNS:
         dist_blob_df: pd.DataFrame
@@ -318,10 +327,8 @@ def get_dist_blob_isaura(file):
     Contains the isaura main track information with the barycenter and track start coordinates.
 
     '''
-    beersh_voxels = dio.load_dst(file, 'DATASET', 'BeershebaVoxels')
-    bins_info = dio.load_dst(file, 'DATASET', 'BinsInfo')
 
-    isaura_info_start = add_track_start_points(file)
+    isaura_info_start = add_track_start_points(mchits, isaura_info)
     blob_center_df = get_blob_centers(beersh_voxels, bins_info)
 
     isaura_info_blobs = isaura_info_start.merge(blob_center_df, on = 'dataset_id', how = 'outer')
