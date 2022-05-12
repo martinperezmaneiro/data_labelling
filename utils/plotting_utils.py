@@ -218,7 +218,7 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     cb.set_label (value, size = 15)
     cb.ax.tick_params(labelsize=13)
     cb.formatter.set_powerlimits((0, 0))
-    
+
     ax.set_xticklabels(labels[0])
     ax.set_xticks(ticks[0])
     ax.set_yticklabels(labels[1])
@@ -800,6 +800,151 @@ def plot_cloud_voxels_and_hits_discrete(labelled_voxels, labelled_hits, voxel_si
         hit_color = scaled_hits[value[2]].map(color_dict)
         ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=hit_color, marker='o', alpha = opacity[2])
 
+
+    ax.set_xlabel('X ')
+    ax.set_ylabel('Y ')
+    ax.set_zlabel('Z ')
+
+
+
+    ax.legend(handles=legend_elements, fontsize=15)
+
+    ax.set_xticklabels(labels[0])
+    ax.set_xticks(ticks[0])
+    ax.set_yticklabels(labels[1])
+    ax.set_yticks(ticks[1])
+    ax.set_zticklabels(labels[2])
+    ax.set_zticks(ticks[2])
+
+
+    plt.show()
+
+def plot_cloud_voxels_and_hits_discrete_blobs(labelled_voxels, labelled_hits, event_blobs, voxel_size, start_bin, affluence = (5, 5, 5), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0.05, 0.05, 1]):
+    '''
+    Plots also the extremes in the event_blobs DataFrame
+    '''
+
+    color_dict = {1:'deepskyblue', 2:'gold', 3:'tab:red', 4:'deepskyblue', 5:'gold', 6:'tab:red', 7:'tab:green'}
+
+    if type(labelled_voxels) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_voxels).T
+        labelled_voxels = pd.DataFrame(coor, columns = coords + ['energy'] + ['segclass'])
+
+    if type(labelled_hits) == type(pd.DataFrame()):
+        pass
+    else:
+        coor = np.array(labelled_hits).T
+        labelled_hits = pd.DataFrame(coor, columns = coords_mc + [value[2]])
+
+    xcoord  = labelled_voxels[coords[0]].values
+    ycoord  = labelled_voxels[coords[1]].values
+    zcoord  = labelled_voxels[coords[2]].values
+    content = labelled_voxels[value[0]].values
+
+    xmin, xmax = min(xcoord), max(xcoord)
+    ymin, ymax = min(ycoord), max(ycoord)
+    zmin, zmax = min(zcoord), max(zcoord)
+
+    labels, ticks = plot_label_creator((xmin, ymin, zmin), (xmax, ymax, zmax), voxel_size, affluence)
+
+    nbinsX = int(np.ceil((xmax-xmin))) + 2
+    nbinsY = int(np.ceil((ymax-ymin))) + 2
+    nbinsZ = int(np.ceil((zmax-zmin))) + 2
+
+
+    mc_label = labelled_voxels[np.isin(labelled_voxels.segclass, (1, 2, 3))]
+    cloud    = labelled_voxels[np.isin(labelled_voxels.segclass, (4, 5, 6))]
+    ghost    = labelled_voxels[np.isin(labelled_voxels.segclass, 7)]
+
+
+    ax  = plt.figure(figsize=(10, 10), frameon=False).add_subplot(projection='3d')
+
+    #CLOUD
+    xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+    nonzeros = np.vstack([cloud[coords[0]].values-xmin,
+                          cloud[coords[1]].values-ymin,
+                          cloud[coords[2]].values-zmin])
+
+    xarr[tuple(nonzeros)] = cloud[value[1]].map(color_dict).values
+
+    ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth, alpha = opacity[1])
+
+    #MC
+    xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+    nonzeros = np.vstack([mc_label[coords[0]].values-xmin,
+                          mc_label[coords[1]].values-ymin,
+                          mc_label[coords[2]].values-zmin])
+
+    xarr[tuple(nonzeros)] = mc_label[value[0]].map(color_dict).values
+
+
+    ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth, alpha = opacity[0])
+
+    legend_elements = [Patch(facecolor='deepskyblue', label='other class'),
+                       Patch(facecolor='gold',        label='track class'),
+                       Patch(facecolor='tab:red',     label='blob class')]
+
+    #GHOST
+    if ghost.empty == False:
+        xarr = np.zeros(shape=(nbinsX, nbinsY, nbinsZ), dtype = 'U16')
+
+        nonzeros = np.vstack([ghost[coords[0]].values-xmin,
+                              ghost[coords[1]].values-ymin,
+                              ghost[coords[2]].values-zmin])
+
+        xarr[tuple(nonzeros)] = ghost['segclass'].map(color_dict).values
+
+        ax.voxels(xarr, facecolors=xarr, edgecolor=edgecolor, linewidth = linewidth)
+
+        legend_elements.append(Patch(facecolor='tab:green',   label='ghost class'))
+
+
+    #HITS
+    if not labelled_hits.empty:
+        scaled_hits = plot_adaption_hits_to_voxel_scale(labelled_hits, voxel_size, start_bin)
+
+        hit_color = scaled_hits[value[2]].map(color_dict)
+        ax.scatter(scaled_hits[coords_mc[0]] - xmin, scaled_hits[coords_mc[1]] - ymin, scaled_hits[coords_mc[2]] - zmin, c=hit_color, marker='o', alpha = opacity[2])
+
+    #ISAURA BLOBS
+    blob1_names = ['blob1_x', 'blob1_y', 'blob1_z']
+    blob2_names = ['blob2_x', 'blob2_y', 'blob2_z']
+
+    blob1 = coord_transformer((event_blobs[blob1_names[0]], event_blobs[blob1_names[1]], event_blobs[blob1_names[2]]), voxel_size, start_bin)
+    blob2 = coord_transformer((event_blobs[blob2_names[0]], event_blobs[blob2_names[1]], event_blobs[blob2_names[2]]), voxel_size, start_bin)
+
+    blob1_plot = ax.scatter3D(blob1[0] - xmin, blob1[1] - ymin, blob1[2] - zmin, s = 300, c = 'forestgreen', marker = '*', label = 'isaura blob')
+    blob2_plot = ax.scatter3D(blob2[0] - xmin, blob2[1] - ymin, blob2[2] - zmin, s = 300, c = 'forestgreen', marker = '*', label = 'blob2 isaura')
+
+    legend_elements.append(blob1_plot)
+    #legend_elements.append(blob2_plot)
+
+    #BARYCENTERS
+    label_blob_names = ['barycenter_x', 'barycenter_y', 'barycenter_z']
+    start_track_names = ['track_start_x', 'track_start_y', 'track_start_z']
+    blob2_color = 'blue'
+
+    main_blob = event_blobs[event_blobs.elem == '3_0']
+
+    labelblob1 = coord_transformer((main_blob[label_blob_names[0]], main_blob[label_blob_names[1]], main_blob[label_blob_names[2]]), voxel_size, start_bin)
+
+    if len(event_blobs) > 1:
+        main_blob = event_blobs[event_blobs.elem == '3_1']
+        start_track_names = ['barycenter_x', 'barycenter_y', 'barycenter_z']
+        blob2_color = 'm'
+
+    labelblob2 = coord_transformer((main_blob[start_track_names[0]], main_blob[start_track_names[1]], main_blob[start_track_names[2]]), voxel_size, start_bin)
+
+    labelblob1_plot = ax.scatter3D(labelblob1[0] - xmin, labelblob1[1] - ymin, labelblob1[2] - zmin, s = 300, c = 'm', marker = 'X', label = 'label blob')
+    labelblob2_plot = ax.scatter3D(labelblob2[0] - xmin, labelblob2[1] - ymin, labelblob2[2] - zmin, s = 300, c = blob2_color, marker = 'X', label = 'start track')
+
+    legend_elements.append(labelblob1_plot)
+    if (len(event_blobs) == 1) & (event_blobs.binclass.values[0] == 0):
+        legend_elements.append(labelblob2_plot)
 
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
