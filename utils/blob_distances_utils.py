@@ -274,7 +274,7 @@ def distance_cases(isaura_info_blobs):
                                             'eblob2':eblob2},
                                             ignore_index=True)
 
-return dist_blob_df
+    return dist_blob_df
 
 def take_best_dist_outcome(dist_blob_df):
     '''
