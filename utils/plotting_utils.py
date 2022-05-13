@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib        as mpl
 import matplotlib.pyplot as plt
 
+from .blob_distances_utils import get_centers
+
 from   mpl_toolkits.mplot3d import Axes3D
 from   matplotlib.patches   import Patch
 
@@ -931,7 +933,7 @@ def plot_cloud_voxels_and_hits_discrete_blobs(labelled_voxels, labelled_hits, ev
     def coord_transformer(coor, voxel_size, start_bin):
         new_coor = [(co - star) / siz for co, (siz, star) in zip(coor, zip(voxel_size, start_bin))]
         return new_coor
-    
+
     blob1 = coord_transformer((event_blobs[blob1_names[0]], event_blobs[blob1_names[1]], event_blobs[blob1_names[2]]), voxel_size, start_bin)
     blob2 = coord_transformer((event_blobs[blob2_names[0]], event_blobs[blob2_names[1]], event_blobs[blob2_names[2]]), voxel_size, start_bin)
 
