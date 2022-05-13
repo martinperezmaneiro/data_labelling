@@ -819,6 +819,20 @@ def plot_cloud_voxels_and_hits_discrete(labelled_voxels, labelled_hits, voxel_si
 
     plt.show()
 
+def recalculate_barycenter_plot(centers_df):
+    '''
+    Takes several elements and recalculates their barycenter weighted with the element energy
+    '''
+    coor = np.array([centers_df.barycenter_x.values, centers_df.barycenter_y.values, centers_df.barycenter_z.values]).T
+    barycenter, avg_center = get_centers(coor, centers_df.elem_ener.values)
+    centers_df = centers_df.drop(['barycenter_x',
+                                  'barycenter_y',
+                                  'barycenter_z'], axis = 1).assign(**{'barycenter_x':barycenter[0],
+                                                                        'barycenter_y':barycenter[1],
+                                                                        'barycenter_z':barycenter[2]})
+    return centers_df
+
+
 def plot_cloud_voxels_and_hits_discrete_blobs(labelled_voxels, labelled_hits, event_blobs, voxel_size, start_bin, affluence = (5, 5, 5), value = ['segclass', 'segclass', 'segclass'], coords = ['xbin', 'ybin', 'zbin'], coords_mc = ['x', 'y', 'z'], th=0, edgecolor='k', linewidth = .3, cmap = [mpl.cm.coolwarm, mpl.cm.coolwarm, mpl.cm.coolwarm], opacity = [0.05, 0.05, 1]):
     '''
     Plots also the extremes in the event_blobs DataFrame
@@ -914,6 +928,10 @@ def plot_cloud_voxels_and_hits_discrete_blobs(labelled_voxels, labelled_hits, ev
     blob1_names = ['blob1_x', 'blob1_y', 'blob1_z']
     blob2_names = ['blob2_x', 'blob2_y', 'blob2_z']
 
+    def coord_transformer(coor, voxel_size, start_bin):
+        new_coor = [(co - star) / siz for co, (siz, star) in zip(coor, zip(voxel_size, start_bin))]
+        return new_coor
+    
     blob1 = coord_transformer((event_blobs[blob1_names[0]], event_blobs[blob1_names[1]], event_blobs[blob1_names[2]]), voxel_size, start_bin)
     blob2 = coord_transformer((event_blobs[blob2_names[0]], event_blobs[blob2_names[1]], event_blobs[blob2_names[2]]), voxel_size, start_bin)
 
