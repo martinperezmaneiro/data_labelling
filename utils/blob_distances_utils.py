@@ -211,10 +211,11 @@ def distance_cases(isaura_info_blobs):
     Args:
         isaura_info_blobs: pd.DataFrame
     Contains the isaura main tracks information with all the track start + blob centers information
-
+    
     RETURNS:
         dist_blob_df:
-    Contains the distances between the label and isaura blobs (both combinations).
+    Contains the distances between the label and isaura blobs (both combinations), and the coordinates
+    to the labelling blobs
     '''
     dist_blob_df = pd.DataFrame()
 
@@ -223,6 +224,10 @@ def distance_cases(isaura_info_blobs):
         centers_df_inv = centers_df.copy()
 
         if bincl == 0:
+            label_blob2_x = centers_df.track_start_x.values[0]
+            label_blob2_y = centers_df.track_start_y.values[0]
+            label_blob2_z = centers_df.track_start_z.values[0]
+
             #For bkg, the blob2 is always the track start
             blob2_dist = distance_to_center(centers_df, 'track_start_', 'blob2_')
             #I also compute the distance with crossed blobs, just in case the tables had turned for
@@ -240,8 +245,16 @@ def distance_cases(isaura_info_blobs):
             #And the inverse
             blob2_dist_inv = distance_to_center(centers_df_inv, 'barycenter_', 'blob2_')
 
+            label_blob1_x = centers_df.barycenter_x.values[0]
+            label_blob1_y = centers_df.barycenter_y.values[0]
+            label_blob1_z = centers_df.barycenter_z.values[0]
+
 
         if bincl == 1:
+
+            label_blob1_x = centers_df[centers_df.elem == '3_0'].barycenter_x.values[0]
+            label_blob1_y = centers_df[centers_df.elem == '3_0'].barycenter_y.values[0]
+            label_blob1_z = centers_df[centers_df.elem == '3_0'].barycenter_z.values[0]
 
             blob1_dist = distance_to_center(centers_df[centers_df.elem == '3_0'], 'barycenter_', 'blob1_')
             blob2_dist_inv = distance_to_center(centers_df[centers_df.elem == '3_0'], 'barycenter_', 'blob2_')
@@ -251,9 +264,15 @@ def distance_cases(isaura_info_blobs):
                 blob2_dist = distance_to_center(centers_df, 'barycenter_', 'blob2_')
                 blob1_dist_inv = distance_to_center(centers_df, 'barycenter_', 'blob1_')
 
+                label_blob2_x, label_blob2_y, label_blob2_z = label_blob1_x, label_blob1_y, label_blob1_z
+
             if elem_count == 2:
                 blob2_dist = distance_to_center(centers_df[centers_df.elem == '3_1'], 'barycenter_', 'blob2_')
                 blob1_dist_inv = distance_to_center(centers_df[centers_df.elem == '3_1'], 'barycenter_', 'blob1_')
+
+                label_blob2_x = centers_df[centers_df.elem == '3_1'].barycenter_x.values[0]
+                label_blob2_y = centers_df[centers_df.elem == '3_1'].barycenter_y.values[0]
+                label_blob2_z = centers_df[centers_df.elem == '3_1'].barycenter_z.values[0]
 
             if elem_count > 2:
                 #We get rid of the 3_0 element as it will only contribute to the blob1
@@ -264,12 +283,22 @@ def distance_cases(isaura_info_blobs):
                 centers_df_inv = recalculate_barycenter(centers_df_inv, 'blob1_')
                 blob1_dist_inv = distance_to_center(centers_df_inv, 'barycenter_', 'blob1_')
 
+                label_blob2_x = centers_df.barycenter_x.values[0]
+                label_blob2_y = centers_df.barycenter_y.values[0]
+                label_blob2_z = centers_df.barycenter_z.values[0]
+
         dist_blob_df = dist_blob_df.append({'dataset_id':idx,
                                             'binclass':bincl,
                                             'blob1_dist':blob1_dist,
                                             'blob2_dist':blob2_dist,
                                             'blob1_dist_inv':blob1_dist_inv,
                                             'blob2_dist_inv':blob2_dist_inv,
+                                            'label_blob1_x':label_blob1_x,
+                                            'label_blob1_y':label_blob1_y,
+                                            'label_blob1_z':label_blob1_z,
+                                            'label_blob2_x':label_blob2_x,
+                                            'label_blob2_y':label_blob2_y,
+                                            'label_blob2_z':label_blob2_z,
                                             'eblob1':eblob1,
                                             'eblob2':eblob2},
                                             ignore_index=True)
@@ -278,7 +307,7 @@ def distance_cases(isaura_info_blobs):
 
 def take_best_dist_outcome(dist_blob_df):
     '''
-    Sums the two barycenter-isaurablob distances and picks up the minimum of both.
+    Sums the two barycenter-isaurablob distances and picks up the minimum of both
 
     Args:
         dist_blob_df: pd.DataFrame
@@ -290,9 +319,9 @@ def take_best_dist_outcome(dist_blob_df):
     labelled blobs and the isaura blobs. Also the binclass and the isaura blob energy.
     '''
     min_dist_mask = dist_blob_df.blob1_dist + dist_blob_df.blob2_dist < dist_blob_df.blob1_dist_inv + dist_blob_df.blob2_dist_inv
-    normal_dist_df = dist_blob_df[min_dist_mask][['binclass', 'blob1_dist', 'blob2_dist', 'dataset_id', 'eblob1', 'eblob2']]
+    normal_dist_df = dist_blob_df[min_dist_mask].drop(['blob1_dist_inv', 'blob2_dist_inv'], axis = 1)
 
-    inv_dist_df = dist_blob_df[~min_dist_mask][['binclass', 'blob1_dist_inv', 'blob2_dist_inv', 'dataset_id', 'eblob1', 'eblob2']]
+    inv_dist_df = dist_blob_df[~min_dist_mask].drop(['blob1_dist', 'blob2_dist'], axis = 1)
     inv_dist_df = inv_dist_df.rename(columns={'blob1_dist_inv':'blob1_dist', 'blob2_dist_inv':'blob2_dist', 'eblob1':'eblob2', 'eblob2':'eblob1'})
 
     dist_blob_df = normal_dist_df.append(inv_dist_df).sort_values('dataset_id')
