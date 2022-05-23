@@ -75,7 +75,10 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     per_part_info.reset_index(inplace=True)
 
     #Seleccionamos los eventos de double scape y background
-    doublescape_event_ids = per_part_info[per_part_info.particle_name == 'e+'].event_id.unique()
+    #Anteriormente escogía los eventos de doublescape si tenían hits que fueran de positron, pero
+    #hay eventos en los que no hay hits de positrón, por tanto vamos a escoger que tenga hits de
+    #alguna partícula creada por 'conv'
+    doublescape_event_ids = per_part_info[per_part_info.creator_proc == 'conv'].event_id.unique()
     background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), doublescape_event_ids)
 
     #Seleccionamos las trazas de cada evento
