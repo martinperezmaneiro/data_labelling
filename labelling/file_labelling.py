@@ -12,6 +12,7 @@ def label_file(directory,
                voxel_size,
                start_bin,
                label_neighbours_function,
+               sig_creator = 'conv',
                blob_ener_loss_th = None,
                blob_ener_th = None,
                simple = True,
@@ -44,6 +45,10 @@ def label_file(directory,
 
         label_neighbours_function: FUNCTION
     Selected function to perform the neighbour labelling (so I can easily change the method)
+
+        sig_creator: STR
+    If 'conv', signal will be the double scape data.
+    If 'none', signal will be the neutrinoless decay data.
 
         blob_ener_loss_th: FLOAT
     Energy loss percentage of total track energy for the last hits that establishes a threshold for the blob class.
@@ -96,6 +101,7 @@ def label_file(directory,
                                                             total_size,
                                                             voxel_size,
                                                             start_bin,
+                                                            sig_creator = sig_creator,
                                                             blob_ener_loss_th = blob_ener_loss_th,
                                                             blob_ener_th = blob_ener_th,
                                                             Rmax = Rmax,
