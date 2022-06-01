@@ -23,7 +23,7 @@ jobTemp_filename    = "jobTemplate.sh"
 configTemp_filename = "configTemplate.conf"
 
 #directory of the input files to be processed, remember to write / at the end
-indir = "/mnt/lustre/scratch/home/usc/ie/mpm/NEW_0nubb_data/prod/beersheba/"
+indir = "/mnt/lustre/scratch/home/usc/ie/mpm/N100_0nubb_data/prod/beersheba/"
 
 #path of the script to run
 scriptdir = "/home/usc/ie/mpm/data_labelling/scripts/create_labelled_dataset.py"
