@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy  as np
+import tables as tb
 import os
 
 from invisible_cities.io          import dst_io as dio
@@ -307,6 +308,17 @@ def get_isaura_info(directory, dct_map):
     if os.path.isfile(isaura_path):
         #Loading the track info dataframe
         isaura_info = dio.load_dst(isaura_path, 'Tracking', 'Tracks')
+
+        #Check if there is a mapping between MC and beersheba/isaura info
+        #Needed for 0nubb data as the MC and isaura files don't have the
+        #same id, but there is a mapping in /Run/eventMap
+        with tb.open_file(directory, 'r') as h5in:
+            exists_map = '/Run/eventMap' in h5in
+
+        if exists_map:
+            event_mapping = dio.load_dst(directory, 'Run', 'eventMap')
+            map_dict = dict(zip(event_mapping.evt_number, event_mapping.nexus_evt))
+            isaura_info.event = isaura_info.event.map(map_dict)
 
         #Mapping the event number with the dataset_id
         isaura_info = isaura_info.assign(dataset_id = isaura_info.event.map(dct_map))

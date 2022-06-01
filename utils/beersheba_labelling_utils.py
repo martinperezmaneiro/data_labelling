@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import tables as tb
 
 from utils.histogram_utils import bin_creator, container_creator, mcimg
 from utils.data_utils      import histog_to_coord
@@ -49,6 +50,16 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     #I perform the cut on beersheba data depending on the events that were cut
     #for the MC because of the fiducial volume
     labelled_vox_events = labelled_vox['event_id'].unique()
+
+    #Check if there is a mapping between MC and the beersheba/isaura info
+    with tb.open_file(beersh_dir, 'r') as h5in:
+        exists_map = '/Run/eventMap' in h5in
+
+    if exists_map:
+        event_mapping = dio.load_dst(beersh_dir, 'Run', 'eventMap')
+        map_dict = dict(zip(event_mapping.evt_number, event_mapping.nexus_evt))
+        beersh_hits.event = beersh_hits.event.map(map_dict)
+
     beersh_hits = beersh_hits[np.isin(beersh_hits['event'], labelled_vox_events)]
 
     binclass = np.array([])

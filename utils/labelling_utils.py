@@ -7,8 +7,10 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
     '''
     Adds binary class to each hit depending on if its considered as signal or background.
     The two classes are 0 - background, 1 - signal
-    For double scape data, we should use sig_creator = 'conv' (i.e. 208Tl data)
-    For 0nubb data, we should use sig_creator = 'none'
+    For double scape data, we should use sig_creator = 'conv' (i.e. 208Tl data), since
+    this is its creator process.
+    For 0nubb data, we should use sig_creator = 'none', since this is its creator
+    process.
 
     Args:
         mchits: DATAFRAME
@@ -22,8 +24,11 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
         mchits_binclass: DATAFRAME
     The mchits df with a new column containing the binclass.
     '''
+    #We use the sum on a creator proces because it is more general for different types of data
+    class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x: 1 if any(x == sig_creator) else 0)
 
-    class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x:sum(x==sig_creator)).astype(int) - 1
+    #There is this alternative which is more rudimentary but I know it works for sure
+    #class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x:sum(x==sig_creator)).astype(int).replace({2:1})
 
     class_label.name = 'binclass'
 

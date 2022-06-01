@@ -79,7 +79,7 @@ if __name__ == "__main__":
                                     voxel_size,
                                     start_bin,
                                     neighbours_functions_mapping[config.label_neighbours_name],
-                                    sig_creator = data_type_mapping[config.data_type]
+                                    sig_creator = data_type_mapping[config.data_type],
                                     blob_ener_loss_th = config.blob_ener_loss_th,
                                     blob_ener_th = config.blob_ener_th,
                                     simple = config.simple,
