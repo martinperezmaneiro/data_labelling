@@ -9,7 +9,6 @@ The final file contains
 It takes a CONFIG FILE with the following information:
  - files_in   - string with the beersheba files we want to join
  - file_out   - string with the final destination file
- - tag        - string that is a general file identificator, the same for all the incoming files
  - voxel_type - either 'MC' or 'Beersheba'
 """
 
@@ -27,11 +26,7 @@ if __name__ == "__main__":
     filesin = glob(os.path.expandvars(config.files_in))
     fout = os.path.expandvars(config.file_out)
     
-    tag = config.tag
-    get_cutnum = lambda x:int(re.match(r"([a-z]+)([0-9]+)",
-                                       x.split('/')[-1].replace(tag, '').split('.')[0], re.I).groups()[-1])
-    
-    files_to_merge = sorted(filesin, key = get_cutnum)
+    files_to_merge = sorted(filesin)
 
     #We copy in the output file the initial file information and delete the non wanted dataframes
     with tb.open_file(files_to_merge[0], 'r') as h5in:
