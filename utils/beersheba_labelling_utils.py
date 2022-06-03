@@ -229,6 +229,14 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
     Contains just the beersheba voxels, without the outside MC voxels, and with a relabelling done for those
     voxels, for several events.
     '''
+
+    #We are going to eliminate the events that don't appear in the beersheba voxels
+    #because its hits had 0 energy and the voxelization histogram remained empty
+    #There are other options, but for now I'll do this one
+    coinc_evs = beersh_voxels.merge(labelled_voxels_MC, on = 'event_id', how = 'outer', indicator = True)
+    null_beer_evs = coinc_evs[coinc_evs._merge != 'both'].event_id.unique()
+    labelled_voxels_MC = labelled_voxels_MC[~np.isin(labelled_voxels_MC.event_id, null_beer_evs)]
+
     merged_voxels = beersh_voxels.merge(labelled_voxels_MC[['event_id',
                                                             'x',
                                                             'y',
