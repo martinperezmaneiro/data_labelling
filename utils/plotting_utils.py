@@ -217,8 +217,14 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     ax.set_xlabel('X ')
     ax.set_ylabel('Y ')
     ax.set_zlabel('Z ')
-    cb.set_label (value, size = 15)
-    cb.ax.tick_params(labelsize=13)
+    
+    if value == 'energy':
+        cb_label = 'Energy (MeV)'    
+    else:
+        cb_label = value
+        
+    cb.set_label (cb_label)
+    #cb.ax.tick_params(labelsize=13)
     cb.formatter.set_powerlimits((0, 0))
 
     ax.set_xticklabels(labels[0])
