@@ -202,9 +202,9 @@ def plot_3d_vox(hits_digitized, voxel_size, value='energy', coords = ['x', 'y', 
     voxels  = xarr > th
 
     fig  = plt.figure(figsize=(8, 8), frameon=False)
-    gs   = fig.add_gridspec(1, 12)
-    ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
-    axcb = fig.add_subplot(gs[0, 11])
+    gs   = fig.add_gridspec(12, 12)
+    ax   = fig.add_subplot(gs[0:12, 0:10], projection = '3d')
+    axcb = fig.add_subplot(gs[1:11, 11])
     norm = mpl.colors.Normalize(vmin=xarr.min(), vmax=xarr.max())
     m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
 
@@ -266,9 +266,9 @@ def plot_3d_hits(hits, value='energy', coords = ['x', 'y', 'z'], cmap = mpl.cm.j
     content = hits[value].values
 
     fig  = plt.figure(figsize=(8, 8), frameon=False)
-    gs   = fig.add_gridspec(1, 12)
-    ax   = fig.add_subplot(gs[0, 0:10], projection = '3d')
-    axcb = fig.add_subplot(gs[0, 11])
+    gs   = fig.add_gridspec(12, 12)
+    ax   = fig.add_subplot(gs[0:12, 0:10], projection = '3d')
+    axcb = fig.add_subplot(gs[1:11, 11])
     norm = mpl.colors.Normalize(vmin=min(content), vmax=max(content))
 
     m    = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)

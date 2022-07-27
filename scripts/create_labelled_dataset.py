@@ -16,7 +16,7 @@ It takes a CONFIG FILE with the following information:
  - voxel_size            - tuple with the size of the voxels for each coordinate (in mm)
  - start_bin             - tuple with the  min position of the hits for each coordinate (in mm)
  - label_neighbours_name - string with the name of the neighbour labelling method
- - data_type             - string with the kind of data to label ('208Tl' for double scape, '0nubb' for neutrinoless double beta events)
+ - data_type             - string with the kind of data to label ('doublescape' for double scape, '0nubb' for neutrinoless double beta events)
  - blob_ener_loss_th     - threshold for the main blob class labelling (in terms of percentage of loss energy at the end
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
@@ -52,7 +52,7 @@ from utils.grouping_utils     import label_event_elements
 from utils.beersheba_labelling_utils import label_neighbours_ordered
 
 neighbours_functions_mapping = {'ordered':label_neighbours_ordered}
-data_type_mapping = {'208Tl':'conv', '0nubb':'none'}
+data_type_mapping = {'doublescape':'conv', '0nubb':'none'}
 
 
 if __name__ == "__main__":

@@ -24,8 +24,18 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
         mchits_binclass: DATAFRAME
     The mchits df with a new column containing the binclass.
     '''
+
+    # To avoid labelling as signal events with the doublescape/0nubb outside the detector,
+    # we'll get just the particles that deposited any hit:
+
+    hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id'])
+
     #We use the sum on a creator proces because it is more general for different types of data
-    class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x: 1 if any(x == sig_creator) else 0)
+    #Also, we added the condition that at least one particle has to be an electron
+    #because both doublescape and 0nubb have either a conv or none created electron
+    #the bkg of the doublescape won't have any electron created by conv
+    #the bkg of the 0nubb won't have any electron created by none
+    class_label = hits_part.groupby('event_id').apply(lambda x: 1 if any((x.creator_proc == sig_creator) & (x.particle_name == 'e-')) else 0)
 
     #There is this alternative which is more rudimentary but I know it works for sure
     #class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x:sum(x==sig_creator)).astype(int).replace({2:1})
