@@ -11,17 +11,23 @@ This script creates hdf5 files that contains:
 It takes a CONFIG FILE with the following information:
  - files_in              - string with the beersheba files we want to label
  - file_out              - string with the name of the output file that will contain all the labelled data from the input files
+
  - total_size            - tuple with the size of the detector for each coordinate (in mm), the hits outside this margins will
                            not be processed
  - voxel_size            - tuple with the size of the voxels for each coordinate (in mm)
  - start_bin             - tuple with the  min position of the hits for each coordinate (in mm)
+
  - label_neighbours_name - string with the name of the neighbour labelling method
  - data_type             - string with the kind of data to label ('doublescape' for double scape, '0nubb' for neutrinoless double beta events)
+
  - blob_ener_loss_th     - threshold for the main blob class labelling (in terms of percentage of loss energy at the end
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
+
  - simple                - bool that indicates a way of voxelization for the beersheba hits (not very relevant, for now always True)
  - relabel               - bool that indicates if the residual MC voxels are reassigned to an existent beersheba voxel
+ - fix_track_connection  - bool that indicates if the residual MC voxels are included as an almost 0 energy voxel to avoid track interruption
+
  - binclass              - bool that indicates if the process does the binary labelling
  - segclass              - bool that indicates if the process does the segmentation labelling, requires binclass True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
@@ -84,6 +90,7 @@ if __name__ == "__main__":
                                     blob_ener_th = config.blob_ener_th,
                                     simple = config.simple,
                                     relabel = config.relabel,
+                                    fix_track_connection = config.fix_track_connection,
                                     binclass = config.binclass,
                                     segclass = config.segclass,
                                     Rmax = config.Rmax,

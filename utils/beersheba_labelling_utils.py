@@ -212,7 +212,7 @@ def relabel_outside_voxels(merged_voxels):
 
 
 
-def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
+def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fix_track_connection = False):
     '''
     Function that does the relabelling to a complete file, i.e., it goes through all the events in each file
     applying the relabel_outside_voxels to each event
@@ -223,6 +223,15 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
 
         beersh_voxels: DATAFRAME
     Contains the beersheba voxels for a file, i.e. the output of the voxelize_beersh function
+
+        relabel: BOOL
+    If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
+    voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
+    true coincident voxels.
+
+        fix_track_connection: BOOL
+    Used to solve the beersheba track desconnection problem (temporary), and it is incompatible with the relabel,
+    we can just use one of them.
 
     RETURNS:
         merged_voxels: DATAFRAME
@@ -247,8 +256,10 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
                                                             'segclass']],
                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
                                         how = 'outer')
+    if fix_track_connection and not relabel:
+        merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(sys.float_info.epsilon)
 
-    if relabel == True:
+    elif relabel and not fix_track_connection:
         length = len(merged_voxels)
         for event_id, df in merged_voxels.groupby('event_id'):
             no_out_voxels_df = relabel_outside_voxels(df)
@@ -268,6 +279,9 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
                 print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
 
         merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+    else:
+        raise ValueError('Both relabel and fixing track connections are set as {}'.format(relabel))
+
     return merged_voxels
 
 

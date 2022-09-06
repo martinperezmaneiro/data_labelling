@@ -18,6 +18,7 @@ def label_file(directory,
                blob_ener_th = None,
                simple = True,
                relabel = True,
+               fix_track_connection = False,
                binclass = True,
                segclass = True,
                Rmax = np.nan,
@@ -66,6 +67,10 @@ def label_file(directory,
     If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
     voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
     true coincident voxels.
+
+        fix_track_connection: BOOL
+    Used to solve the beersheba track desconnection problem (temporary), and it is incompatible with the relabel,
+    we can just use one of them.
 
         binclass: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.
@@ -117,6 +122,7 @@ def label_file(directory,
                                                  label_neighbours_function,
                                                  simple = simple,
                                                  relabel = relabel,
+                                                 fix_track_connection = fix_track_connection,
                                                  Rmax = Rmax)
 
         #Rename to match the names in the next_sparseconvnet functions
