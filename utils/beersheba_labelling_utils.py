@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import tables as tb
+import sys
 
 from utils.histogram_utils import bin_creator, container_creator, mcimg
 from utils.data_utils      import histog_to_coord
