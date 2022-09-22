@@ -69,8 +69,7 @@ def label_file(directory,
     true coincident voxels.
 
         fix_track_connection: BOOL
-    Used to solve the beersheba track desconnection problem (temporary), and it is incompatible with the relabel,
-    we can just use one of them.
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
 
         binclass: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.

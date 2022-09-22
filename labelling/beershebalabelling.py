@@ -40,8 +40,7 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
     true coincident voxels.
 
         fix_track_connection: BOOL
-    Used to solve the beersheba track desconnection problem (temporary), and it is incompatible with the relabel,
-    we can just use one of them. That is, if relabel is True, this has to be false and so.
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
 
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.

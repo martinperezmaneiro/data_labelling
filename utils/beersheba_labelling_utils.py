@@ -231,8 +231,7 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
     true coincident voxels.
 
         fix_track_connection: BOOL
-    Used to solve the beersheba track desconnection problem (temporary), and it is incompatible with the relabel,
-    we can just use one of them.
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
 
     RETURNS:
         merged_voxels: DATAFRAME
@@ -257,10 +256,17 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
                                                             'segclass']],
                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
                                         how = 'outer')
-    if fix_track_connection and not relabel:
-        merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(sys.float_info.epsilon)
+    if fix_track_connection:
+        #this was the first approach I tried, adding all the MC voxels that fell outside
+        #merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(sys.float_info.epsilon)
 
-    elif relabel and not fix_track_connection:
+        #now I try a new method that is adding just the track voxels that fell outside, and the rest
+        #will be relabelled
+        merged_voxels['beersh_ener'] = np.where(merged_voxels.segclass == 2,
+                                                merged_voxels.beersh_ener.fillna(0),
+                                                merged_voxels.beersh_ener)
+
+    if relabel:
         length = len(merged_voxels)
         for event_id, df in merged_voxels.groupby('event_id'):
             no_out_voxels_df = relabel_outside_voxels(df)
@@ -280,8 +286,6 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
                 print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
 
         merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
-    else:
-        raise ValueError('Both relabel and fixing track connections are set as {}'.format(relabel))
 
     return merged_voxels
 
