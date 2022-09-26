@@ -285,7 +285,10 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
             if prueba[prueba.event_id == event_id].reset_index(drop = True).equals(no_out_voxels_df.reset_index(drop = True)) != True:
                 print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
 
-        merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+    merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+    #we have to sort the voxels, otherwise the neighbour filling will fail!!
+    #if we don't use fix tracks, they would be already sorted, but I prefer adding it here just in case
+    merged_voxels = merged_voxels.sort_values(['event_id', 'x', 'y', 'z'])
 
     return merged_voxels
 
