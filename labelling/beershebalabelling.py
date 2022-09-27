@@ -90,5 +90,5 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
     #Turn into an integer
     mc_beersh_voxels.segclass = pd.to_numeric(mc_beersh_voxels.segclass, downcast = 'integer')
     #Order again to avoid weird labelling
-    mc_beersh_event = mc_beersh_event.sort_values(['event_id', 'x', 'y', 'z'])
+    mc_beersh_voxels = mc_beersh_voxels.sort_values(['event_id', 'x', 'y', 'z'])
     return mc_beersh_voxels
