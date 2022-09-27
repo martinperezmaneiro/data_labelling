@@ -483,8 +483,8 @@ def fill_df_with_nbours_ordered(mc_beersh_event, nbour_counts, nlabel_dict):
     #DF with the new labelled voxels, with the same indexes as the original DF
     nclass_df = pd.DataFrame({'segclass':nclass_values}, index = voxel_segclass[null_mask].index)
 
-    #Join DF and do cleaning
-    mc_beersh_event = mc_beersh_event.merge(nclass_df, left_index=True, right_index=True, how = 'outer')
+    #Join DF and do cleaning; values are sorted to avoid weird labellings
+    mc_beersh_event = mc_beersh_event.merge(nclass_df, left_index=True, right_index=True, how = 'outer').sort_values(['event_id', 'x', 'y', 'z'])
     mc_beersh_event['segclass'] = mc_beersh_event['segclass_y'].fillna(mc_beersh_event['segclass_x'])
     mc_beersh_event = mc_beersh_event.drop(['segclass_x', 'segclass_y'], axis = 1)
     assert sum(mc_beersh_event.segclass.isnull()) == len(empty_positions), 'Something failed excluding the empy voxels'
