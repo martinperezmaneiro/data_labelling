@@ -79,10 +79,13 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
         for i in unique_seg:
             unique_seg = np.append(unique_seg, i + 3)
         unique_seg = np.append(unique_seg, 7)
-        assert (np.isin(mc_beersh_voxels[mc_beersh_voxels.event_id == event_id].segclass, unique_seg)).all()
+
+        #We have to order them to coincide with the df bc after merging the order changes
+        mc_beersh_voxels_ev = mc_beersh_voxels[mc_beersh_voxels.event_id == event_id].sort_values(['event_id', 'x', 'y', 'z'])
+        assert (np.isin(mc_beersh_voxels_ev.segclass, unique_seg)).all()
 
         #Check that the merge was sucessful
-        assert pd.to_numeric(mc_beersh_voxels[mc_beersh_voxels.event_id == event_id].segclass, downcast = 'integer').equals(event_neighbours_labelled.segclass)
+        assert pd.to_numeric(mc_beersh_voxels_ev.segclass, downcast = 'integer').equals(event_neighbours_labelled.segclass)
 
     #Turn into an integer
     mc_beersh_voxels.segclass = pd.to_numeric(mc_beersh_voxels.segclass, downcast = 'integer')
