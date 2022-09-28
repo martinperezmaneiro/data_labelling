@@ -230,8 +230,9 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
     voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
     true coincident voxels.
 
-        fix_track_connection: BOOL
+        fix_track_connection: STR
     Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
 
     RETURNS:
         merged_voxels: DATAFRAME
@@ -256,12 +257,12 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
                                                             'segclass']],
                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
                                         how = 'outer')
-    if fix_track_connection:
-        #this was the first approach I tried, adding all the MC voxels that fell outside
-        #merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(sys.float_info.epsilon)
+    if fix_track_connection == 'all':
+        #this adds all the MC voxels that fell outside
+        merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(0)
 
-        #now I try a new method that is adding just the track voxels that fell outside, and the rest
-        #will be relabelled
+    if fix_track_connection == 'track':
+        #just the track voxels that fell outside are added, and the rest will be relabelled
         merged_voxels['beersh_ener'] = np.where(merged_voxels.segclass == 2,
                                                 merged_voxels.beersh_ener.fillna(0),
                                                 merged_voxels.beersh_ener)
