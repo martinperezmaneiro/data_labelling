@@ -71,6 +71,7 @@ def label_file(directory,
         fix_track_connection: STR
     Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
     If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
         binclass: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.

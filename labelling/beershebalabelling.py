@@ -42,6 +42,7 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
         fix_track_connection: STR
     Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
     If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.

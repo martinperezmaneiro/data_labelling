@@ -27,7 +27,7 @@ It takes a CONFIG FILE with the following information:
  - simple                - bool that indicates a way of voxelization for the beersheba hits (not very relevant, for now always True)
  - relabel               - bool that indicates if the residual MC voxels are reassigned to an existent beersheba voxel
  - fix_track_connection  - string that indicates if the residual MC track voxels are included as a 0 energy voxel to avoid track interruption ('track' for only
-                           MC track voxels, 'all' for all the voxels)
+                           MC track voxels, 'all' for all the voxels; otherwise this won't be done.)
 
  - binclass              - bool that indicates if the process does the binary labelling
  - segclass              - bool that indicates if the process does the segmentation labelling, requires binclass True

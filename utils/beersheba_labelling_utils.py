@@ -233,6 +233,7 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
         fix_track_connection: STR
     Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
     If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
     RETURNS:
         merged_voxels: DATAFRAME
