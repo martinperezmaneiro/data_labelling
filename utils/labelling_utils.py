@@ -96,12 +96,15 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     per_part_info = hits_part.groupby(['event_id',
                                        'particle_id',
                                        'particle_name',
+                                       'binclass',
                                        'creator_proc']).agg({'energy':[('track_ener', sum)]})
     per_part_info.columns = per_part_info.columns.get_level_values(1)
     per_part_info.reset_index(inplace=True)
 
     #Seleccionamos los eventos de señal y background
-    signal_event_ids      = per_part_info[per_part_info.creator_proc == sig_creator].event_id.unique()
+    #Before this , I selected the signal event ids just with the creator process;
+    #Either we do this with the binclass or with creatos + electron (as the binclass function)
+    signal_event_ids      = per_part_info[per_part_info.binclass == 1].event_id.unique()
     background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), signal_event_ids)
 
     #Seleccionamos las trazas de cada evento
