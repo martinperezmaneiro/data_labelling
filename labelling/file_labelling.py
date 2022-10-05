@@ -149,6 +149,8 @@ def create_final_dataframes(label_file_dfs,
                             blob_ener_loss_th = None,
                             blob_ener_th = None,
                             small_blob_th = None,
+                            max_distance = None,
+                            fix_track_connection = None,
                             add_isaura_info = False):
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
@@ -195,6 +197,14 @@ def create_final_dataframes(label_file_dfs,
 
         small_blob_th: FLOAT
     Threshold for the energy of a group of blob hits to be marked as a small blob.
+
+        max_distance: FLOAT
+    Indicates the maximum distance between nodes to be connected for element counting.
+
+        fix_track_connection: STR
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
         add_isaura_info: BOOL
     If True, it means that we have the isaura files in an analogue path to the beersheba file we are
@@ -285,7 +295,9 @@ def create_final_dataframes(label_file_dfs,
                           'Rmax'    : Rmax,
                           'loss_th' : blob_ener_loss_th,
                           'ener_th' : blob_ener_th,
-                          'sb_th'   : small_blob_th
+                          'sb_th'   : small_blob_th,
+                          'max_dis' : max_dis,
+                          'fix_conn': fix_track_connection
                           }).to_frame().T
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo

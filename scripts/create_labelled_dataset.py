@@ -107,6 +107,8 @@ if __name__ == "__main__":
                                                                                                                             blob_ener_loss_th = config.blob_ener_loss_th,
                                                                                                                             blob_ener_th = config.blob_ener_th,
                                                                                                                             small_blob_th = config.small_blob_th,
+                                                                                                                            max_distance = config.max_distance,
+                                                                                                                            fix_track_connection = config.fix_track_connection,
                                                                                                                             add_isaura_info = config.add_isaura_info)
         if config.max_distance != None:
             labelled_beersheba = label_event_elements(labelled_beersheba,
