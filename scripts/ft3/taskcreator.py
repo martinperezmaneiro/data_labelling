@@ -2,8 +2,8 @@ import os
 import glob
 from production_variables import *
 
-in_filename_structure  = "{dir}" + in_filename
-out_filename_structure = "{dir}" + out_filename
+in_filename_structure  = "{dir}/" + in_filename
+out_filename_structure = "{dir}/" + out_filename
 
 if __name__ == "__main__":
 

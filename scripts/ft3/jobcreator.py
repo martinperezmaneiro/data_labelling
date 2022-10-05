@@ -5,15 +5,15 @@ Assumes tasks are already created because each job will take several tasks
 
 import os
 import re
-from glob import glob
-from math   import ceil
+import glob
+from math import ceil
 from production_variables import *
 
 
 if __name__ == "__main__":
     get_file_number = lambda filename: int(filename.split("_")[-1].split(".")[0])
 
-    task_filenames = sorted(glob(os.path.expandvars(taskdir + "task_*.sh")),
+    task_filenames = sorted(glob.glob(os.path.expandvars(taskdir + "task_*.sh")),
                             key = get_file_number)
 
     ntasks = len(task_filenames)
@@ -48,23 +48,3 @@ if __name__ == "__main__":
                                             tasks = task_commands))
 
     print(f"{nbatches} jobs created")
-
-
-
-
-
-
-
-
-
-
-
-
-        #we open the new job file to write the information
-        with open(job, "w") as job_write:
-            #we write using the job template and formatting the specific information in each case
-            job_write.write(job_file.format(jobtime = jobtime,
-                                            jobname = "cut{cutnum}".format(cutnum = cutnum),
-                                            logfilename = logsdir + "cut{cutnum}.log".format(cutnum = cutnum),
-                                            errfilename = logsdir + "cut{cutnum}.err".format(cutnum = cutnum),
-                                            commands = commands))

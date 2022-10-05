@@ -4,7 +4,7 @@ import re
 
 
 #Directory that will contain the created jobs/configs and the output files
-basedir = os.path.expandvars("/mnt/lustre/scratch/home/usc/ie/mpm/beersh_labelling_0nubb_554mm")
+basedir = os.path.expandvars("/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/medium_voxels_554mm_fixed_tracks")
 
 #Part of the in/out filename
 tag = "0nubb"
@@ -29,7 +29,7 @@ jobTemp_filename    = "jobTemplate_ft3.sh"
 
 
 #directory of the input files to be processed, remember to write / at the end
-indir = "/mnt/lustre/scratch/home/usc/ie/mpm/N100_0nubb_data/prod/beersheba/"
+indir = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/data/0nubb/prod/beersheba"
 
 #path of the script to run
 scriptdir = "/home/usc/ie/mpm/data_labelling/scripts/create_labelled_dataset.py"
@@ -40,7 +40,7 @@ get_file_number = lambda filename: int(filename.split("/")[-1].split("_")[1])
 def check_filename_structure(filename):
     name  = filename.split("/")[-1]
     # check length
-    assert len(name.split("_")) == len(production_filename_structure.split("_"))
+    assert len(name.split("_")) == len(in_filename.split("_"))
     # check file number
     assert name.split("_")[1].isdigit()
     # check tag
@@ -57,18 +57,18 @@ def checkmakedir(path):
 #this function creates the output tree of directories (all the jobs and configs, the data
 #production and the logs
 def create_out_dirs():
-        proddir = basedir + "/prod/"
-		taskdir = basedir + "/tasks/"
-        jobsdir = basedir + "/jobs/"
-        confdir = basedir + "/config/"
-        logsdir = basedir + "/logs/"
-        checkmakedir(proddir)
-		checkmakedir(taskdir)
-		checkmakedir(jobsdir)
-        checkmakedir(confdir)
-        checkmakedir(logsdir)
+    proddir = basedir + "/prod/"
+    taskdir = basedir + "/tasks/"
+    jobsdir = basedir + "/jobs/"
+    confdir = basedir + "/config/"
+    logsdir = basedir + "/logs/"
+    checkmakedir(proddir)
+    checkmakedir(taskdir)
+    checkmakedir(jobsdir)
+    checkmakedir(confdir)
+    checkmakedir(logsdir)
 
-        return proddir, taskdir, jobsdir, confdir, logsdir
+    return proddir, taskdir, jobsdir, confdir, logsdir
 
 proddir, taskdir, jobsdir, confdir, logsdir = create_out_dirs()
 
