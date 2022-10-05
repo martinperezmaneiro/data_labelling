@@ -296,7 +296,7 @@ def create_final_dataframes(label_file_dfs,
                           'loss_th' : blob_ener_loss_th,
                           'ener_th' : blob_ener_th,
                           'sb_th'   : small_blob_th,
-                          'max_dis' : max_dis,
+                          'max_dis' : max_distance,
                           'fix_conn': fix_track_connection
                           }).to_frame().T
 
