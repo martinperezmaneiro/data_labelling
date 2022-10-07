@@ -1,10 +1,19 @@
 # data_labelling
-This repository will contains the required functions to label the hits and subsequently voxelize the events and label those voxels.
+This repository is a module to perform binary and semantic segmentation labelling on the NEXT data. 
 
-The final function is label_file, in labelling/file_labelling.py: this function voxelizes and labels a whole beersheba file.
+The purpose for this labelling is to train a Convolutional Neural Network, more information here: https://github.com/martinperezmaneiro/NEXT_SPARSECONVNET
 
-- It runs the labelling_MC function, contained in labelling/MClabelling.py, which would voxelize and label the MC hits with three classes: other, track, blob. The criteria for the label choices is explained in utils/labelling_utils.py, in the add_segclass function.
+For a tutorial on how to set up and work with this repository, check the Notion page: https://mpema.notion.site/data_labelling-36c3294fcc5b4ab085d85990b78d2fbb
 
-- Then runs labelling_beersheba, in labelling/beershebalabelling.py, using a neighbour labelling algorithm which follows the natural order to fill voxels with labels, starting from the MC labels. It is explained in utils/beersheba_labelling_utils.py within the count_neighbours and label_neighbours_ordered functions. I have only one method implemented, but other one was contemplated in the exmples/example_beersh_label_2.ipynb notebook, which is based on a kind of convergence method.
+## Requirements
+Needed miniconda and IC (maybe soon not needed, as it uses just a few functions): https://github.com/next-exp/IC
 
-The scripts and templates folders contain the required files to perform the labelling in the CESGA machines.
+## Organization
+The repository can be set running
+```
+source setup.sh
+```
+and later import any of the folders and its contents as (for example)
+```
+import utils.labelling_utils
+```
