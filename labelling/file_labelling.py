@@ -296,9 +296,12 @@ def create_final_dataframes(label_file_dfs,
                           'loss_th' : blob_ener_loss_th,
                           'ener_th' : blob_ener_th,
                           'sb_th'   : small_blob_th,
-                          'max_dis' : max_distance,
-                          'fix_conn': fix_track_connection
+                          'max_dis' : max_distance
                           }).to_frame().T
+
+    #We add this apart bc otherwise all the elements in the df change to object
+    #type, and then when writing on a file throws an error
+    binsInfo['fix_conn'] = fix_track_connection
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo
 
