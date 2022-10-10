@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy  as np
+import tables as tb
 import os
 
 from invisible_cities.io          import dst_io as dio
@@ -12,10 +13,12 @@ def label_file(directory,
                voxel_size,
                start_bin,
                label_neighbours_function,
+               sig_creator = 'conv',
                blob_ener_loss_th = None,
                blob_ener_th = None,
                simple = True,
                relabel = True,
+               fix_track_connection = False,
                binclass = True,
                segclass = True,
                Rmax = np.nan,
@@ -45,6 +48,10 @@ def label_file(directory,
         label_neighbours_function: FUNCTION
     Selected function to perform the neighbour labelling (so I can easily change the method)
 
+        sig_creator: STR
+    If 'conv', signal will be the double scape data.
+    If 'none', signal will be the neutrinoless decay data.
+
         blob_ener_loss_th: FLOAT
     Energy loss percentage of total track energy for the last hits that establishes a threshold for the blob class.
 
@@ -60,6 +67,11 @@ def label_file(directory,
     If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
     voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
     true coincident voxels.
+
+        fix_track_connection: STR
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
         binclass: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.
@@ -96,6 +108,7 @@ def label_file(directory,
                                                             total_size,
                                                             voxel_size,
                                                             start_bin,
+                                                            sig_creator = sig_creator,
                                                             blob_ener_loss_th = blob_ener_loss_th,
                                                             blob_ener_th = blob_ener_th,
                                                             Rmax = Rmax,
@@ -110,6 +123,7 @@ def label_file(directory,
                                                  label_neighbours_function,
                                                  simple = simple,
                                                  relabel = relabel,
+                                                 fix_track_connection = fix_track_connection,
                                                  Rmax = Rmax)
 
         #Rename to match the names in the next_sparseconvnet functions
@@ -135,6 +149,8 @@ def create_final_dataframes(label_file_dfs,
                             blob_ener_loss_th = None,
                             blob_ener_th = None,
                             small_blob_th = None,
+                            max_distance = None,
+                            fix_track_connection = None,
                             add_isaura_info = False):
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
@@ -181,6 +197,14 @@ def create_final_dataframes(label_file_dfs,
 
         small_blob_th: FLOAT
     Threshold for the energy of a group of blob hits to be marked as a small blob.
+
+        max_distance: FLOAT
+    Indicates the maximum distance between nodes to be connected for element counting.
+
+        fix_track_connection: STR
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
 
         add_isaura_info: BOOL
     If True, it means that we have the isaura files in an analogue path to the beersheba file we are
@@ -271,7 +295,9 @@ def create_final_dataframes(label_file_dfs,
                           'Rmax'    : Rmax,
                           'loss_th' : blob_ener_loss_th,
                           'ener_th' : blob_ener_th,
-                          'sb_th'   : small_blob_th
+                          'sb_th'   : small_blob_th,
+                          'max_dis' : max_distance,
+                          'fix_conn': fix_track_connection
                           }).to_frame().T
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo
@@ -301,6 +327,17 @@ def get_isaura_info(directory, dct_map):
     if os.path.isfile(isaura_path):
         #Loading the track info dataframe
         isaura_info = dio.load_dst(isaura_path, 'Tracking', 'Tracks')
+
+        #Check if there is a mapping between MC and beersheba/isaura info
+        #Needed for 0nubb data as the MC and isaura files don't have the
+        #same id, but there is a mapping in /Run/eventMap
+        with tb.open_file(directory, 'r') as h5in:
+            exists_map = '/Run/eventMap' in h5in
+
+        if exists_map:
+            event_mapping = dio.load_dst(directory, 'Run', 'eventMap')
+            map_dict = dict(zip(event_mapping.evt_number, event_mapping.nexus_evt))
+            isaura_info.event = isaura_info.event.map(map_dict)
 
         #Mapping the event number with the dataset_id
         isaura_info = isaura_info.assign(dataset_id = isaura_info.event.map(dct_map))

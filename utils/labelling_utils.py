@@ -3,63 +3,89 @@ import pandas as pd
 from .histogram_utils import *
 from .data_utils      import calculate_track_distances
 
-def add_binclass(mchits, mcpart):
+def add_binclass(mchits, mcpart, sig_creator = 'conv'):
     '''
-    Adds binary class to each hit basing on the existence of an e+ in the event.
-    The two classes are 0 - background, 1 - doublescape
+    Adds binary class to each hit depending on if its considered as signal or background.
+    The two classes are 0 - background, 1 - signal
+    For double scape data, we should use sig_creator = 'conv' (i.e. 208Tl data), since
+    this is its creator process.
+    For 0nubb data, we should use sig_creator = 'none', since this is its creator
+    process.
 
     Args:
         mchits: DATAFRAME
     Contains the MC hits information of every event in a file.
-
         mcpart: DATAFRAME
     Contains the MC particles information for every event in a file.
-
+        sig_creator: STR
+    If 'conv', signal will be the double scape data.
+    If 'none', signal will be the neutrinoless decay data.
     RETURNS:
         mchits_binclass: DATAFRAME
     The mchits df with a new column containing the binclass.
-
     '''
-    class_label = mcpart.groupby('event_id').particle_name.apply(lambda x:sum(x=='e+')).astype(int)
+
+    # To avoid labelling as signal events with the doublescape/0nubb outside the detector,
+    # we'll get just the particles that deposited any hit:
+
+    hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id'])
+
+    #We use the sum on a creator proces because it is more general for different types of data
+    #Also, we added the condition that at least one particle has to be an electron
+    #because both doublescape and 0nubb have either a conv or none created electron
+    #the bkg of the doublescape won't have any electron created by conv
+    #the bkg of the 0nubb won't have any electron created by none
+    class_label = hits_part.groupby('event_id').apply(lambda x: 1 if any((x.creator_proc == sig_creator) & (x.particle_name == 'e-')) else 0)
+
+    #There is this alternative which is more rudimentary but I know it works for sure
+    #class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x:sum(x==sig_creator)).astype(int).replace({2:1})
+
     class_label.name = 'binclass'
 
     mchits_binclass  = pd.merge(mchits, class_label, on = 'event_id')
     return mchits_binclass
 
-def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={'rest':1, 'track':2, 'blob':3}):
+def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_e = None, label_dict={'rest':1, 'track':2, 'blob':3}):
     '''
     Add segmentation class to each hit in the file, after being filled with the binclass.
-    The classes are 1 - rest, 2 - track, 3 - blob.
-    Rest class is assigned to every hit that is not in the main tracks. Track class is assigned to the
-    hits of the  e- and e+ that come from a gamma conversion process (defined like that in Geant4) in the
-    double scape case, and to the most energetic e- from a compton scattering proccess / photoelectric effect.
-    Finally, the blob class is chosen for the last hits of the track events that fulfill a specific condition
+    The classes are 1 - other, 2 - track, 3 - blob.
+
+    Track class is assigned in the following way, depending on the kind of track:
+        * Double scape (208Tl): hits of the  e- and e+ that come from a gamma conversion process
+        (defined like that in Geant4)
+        * Neutrinoless (0nubb): hits of both e- coming from the process 'none', so called in the
+        MC simulation
+
+        * Background: hits of the most energetic e- from a compton scattering proccess / photoelectric
+        effect
+
+    The blob class is chosen for the last hits of the tracks that fulfill a specific condition
     given either by delta_loss argument of the function or delta_e (explained in the Args part).
+
+    Finally, other class is assigned to every hit that is not in the main tracks.
+
     It also computes the distance between the hits of the tracks (we take advantage of the tracks info
     extraction being done here to perform this calculation)
 
     Args:
         mchits: DATAFRAME
     Contains the hits information plus the binclass. It is the output of the add_binclass() function.
-
         mcpart: DATAFRAME
     Contains the particle information.
-
+        sig_creator: STR
+    If 'conv', signal will be the double scape data.
+    If 'none', signal will be the neutrinoless decay data.
         delta_loss: FLOAT
     Energy loss threshold in percentage (respect to the total track energy) for the last hits of a
     track to become blob class.
-
         delta_e: FLOAT
     Energy threshold for the last hits of a track to become blob class.
-
         label_dict: DICTIONARY
     Has the correspondence for the class names.
-
     RETURN:
         hits_label: DATAFRAME
     Contains the hits information with event_id, coordinates, energy, segclass, binclass
     and hits distances of the tracks (also creator and particle to get the traces and do the bragg peak study)
-
     '''
     #Unimos los df de hits y particulas, haciendo que a cada hit de mchits se le añada la información
     #de la partícula que viene en mcpart
@@ -70,22 +96,23 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     per_part_info = hits_part.groupby(['event_id',
                                        'particle_id',
                                        'particle_name',
+                                       'binclass',
                                        'creator_proc']).agg({'energy':[('track_ener', sum)]})
     per_part_info.columns = per_part_info.columns.get_level_values(1)
     per_part_info.reset_index(inplace=True)
 
-    #Seleccionamos los eventos de double scape y background
-    #Anteriormente escogía los eventos de doublescape si tenían hits que fueran de positron, pero
-    #hay eventos en los que no hay hits de positrón, por tanto vamos a escoger que tenga hits de
-    #alguna partícula creada por 'conv'
-    doublescape_event_ids = per_part_info[per_part_info.creator_proc == 'conv'].event_id.unique()
-    background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), doublescape_event_ids)
+    #Seleccionamos los eventos de señal y background
+    #Before this , I selected the signal event ids just with the creator process;
+    #Either we do this with the binclass or with creatos + electron (as the binclass function)
+    signal_event_ids      = per_part_info[per_part_info.binclass == 1].event_id.unique()
+    background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), signal_event_ids)
 
     #Seleccionamos las trazas de cada evento
     #Para double scape es sencillo, cogemos los e+e- cuyo proceso de creación sea conv, tendremos 2 trazas/evento
-    tracks_dsc = per_part_info[(per_part_info.event_id.isin(doublescape_event_ids)) &\
+    #Para 0nubb cogemos los e- (da igual coger e+, no van a estar) cuyo proceso de creación sea none
+    tracks_sig = per_part_info[(per_part_info.event_id.isin(signal_event_ids)) &\
                                    (per_part_info.particle_name.isin(['e+', 'e-']) &\
-                                   (per_part_info.creator_proc == 'conv'))]
+                                   (per_part_info.creator_proc == sig_creator))]
 
     #Para background cogemos los electrones que fueron creados por compton, y de ellos escogemos el más energético
     #Tendremos 1 traza/evento
@@ -96,7 +123,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
     tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
 
     #Unimos la información de todas las trazas y le añadimos la etiqueta track en una nueva columna segclass
-    tracks_info = pd.concat([tracks_bkg, tracks_dsc]).sort_values('event_id')
+    tracks_info = pd.concat([tracks_bkg, tracks_sig]).sort_values('event_id')
     tracks_info = tracks_info.assign(segclass = label_dict['track'])
 
     #Añadimos al df de información de hits y partículas la nueva columna de etiquetas de voxel
@@ -146,7 +173,7 @@ def add_segclass(mchits, mcpart, delta_loss = None, delta_e = None, label_dict={
 
     return hits_label_dist
 
-def add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = None, blob_ener_th = None):
+def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None):
     '''
     Add binclass and segclass to the raw MC hits dataframe.
 
@@ -157,7 +184,15 @@ def add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = None, blob_ener_th = 
         mcpart: DATAFRAME
     Contains the MC particles information for every event in a file.
 
-        blob_energy_th: FLOAT
+        sig_creator: STR
+    If 'conv', signal will be the double scape data.
+    If 'none', signal will be the neutrinoless decay data.
+
+        blob_ener_loss_th: FLOAT
+    Percentage of energy with respect to the full track energy for the last hits of
+    a track to become blob class.
+
+        blob_ener_th: FLOAT
     Energy threshold for the last hits of a track to become blob class.
 
     RETURNS:
@@ -165,8 +200,9 @@ def add_hits_labels_MC(mchits, mcpart, blob_ener_loss_th = None, blob_ener_th = 
     The mchits df with the binclass and segclass.
 
     '''
-    hits_clf = add_binclass(mchits, mcpart)
-    hits_clf_seg = add_segclass(hits_clf, mcpart, delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
+    hits_clf = add_binclass(mchits, mcpart, sig_creator = sig_creator)
+    hits_clf_seg = add_segclass(hits_clf, mcpart, sig_creator = sig_creator,
+                                delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
     return hits_clf_seg
 
 

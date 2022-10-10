@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import tables as tb
+import sys
 
 from utils.histogram_utils import bin_creator, container_creator, mcimg
 from utils.data_utils      import histog_to_coord
@@ -49,6 +51,16 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
     #I perform the cut on beersheba data depending on the events that were cut
     #for the MC because of the fiducial volume
     labelled_vox_events = labelled_vox['event_id'].unique()
+
+    #Check if there is a mapping between MC and the beersheba/isaura info
+    with tb.open_file(beersh_dir, 'r') as h5in:
+        exists_map = '/Run/eventMap' in h5in
+
+    if exists_map:
+        event_mapping = dio.load_dst(beersh_dir, 'Run', 'eventMap')
+        map_dict = dict(zip(event_mapping.evt_number, event_mapping.nexus_evt))
+        beersh_hits.event = beersh_hits.event.map(map_dict)
+
     beersh_hits = beersh_hits[np.isin(beersh_hits['event'], labelled_vox_events)]
 
     binclass = np.array([])
@@ -201,7 +213,7 @@ def relabel_outside_voxels(merged_voxels):
 
 
 
-def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
+def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fix_track_connection = False):
     '''
     Function that does the relabelling to a complete file, i.e., it goes through all the events in each file
     applying the relabel_outside_voxels to each event
@@ -213,11 +225,29 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
         beersh_voxels: DATAFRAME
     Contains the beersheba voxels for a file, i.e. the output of the voxelize_beersh function
 
+        relabel: BOOL
+    If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
+    voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
+    true coincident voxels.
+
+        fix_track_connection: STR
+    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    Otherwise this won't be done.
+
     RETURNS:
         merged_voxels: DATAFRAME
     Contains just the beersheba voxels, without the outside MC voxels, and with a relabelling done for those
     voxels, for several events.
     '''
+
+    #We are going to eliminate the events that don't appear in the beersheba voxels
+    #because its hits had 0 energy and the voxelization histogram remained empty
+    #There are other options, but for now I'll do this one
+    coinc_evs = beersh_voxels.merge(labelled_voxels_MC, on = 'event_id', how = 'outer', indicator = True)
+    null_beer_evs = coinc_evs[coinc_evs._merge != 'both'].event_id.unique()
+    labelled_voxels_MC = labelled_voxels_MC[~np.isin(labelled_voxels_MC.event_id, null_beer_evs)]
+
     merged_voxels = beersh_voxels.merge(labelled_voxels_MC[['event_id',
                                                             'x',
                                                             'y',
@@ -228,8 +258,17 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
                                                             'segclass']],
                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
                                         how = 'outer')
+    if fix_track_connection == 'all':
+        #this adds all the MC voxels that fell outside
+        merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(0)
 
-    if relabel == True:
+    if fix_track_connection == 'track':
+        #just the track voxels that fell outside are added, and the rest will be relabelled
+        merged_voxels['beersh_ener'] = np.where(merged_voxels.segclass == 2,
+                                                merged_voxels.beersh_ener.fillna(0),
+                                                merged_voxels.beersh_ener)
+
+    if relabel:
         length = len(merged_voxels)
         for event_id, df in merged_voxels.groupby('event_id'):
             no_out_voxels_df = relabel_outside_voxels(df)
@@ -248,7 +287,11 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True):
             if prueba[prueba.event_id == event_id].reset_index(drop = True).equals(no_out_voxels_df.reset_index(drop = True)) != True:
                 print('En el evento {} el reasignado de voxeles out no fue bien'.format(event_id))
 
-        merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+    merged_voxels = merged_voxels.drop(np.array(merged_voxels[merged_voxels.beersh_ener.isnull()].index))
+    #we have to sort the voxels, otherwise the neighbour filling will fail!!
+    #if we don't use fix tracks, they would be already sorted, but I prefer adding it here just in case
+    merged_voxels = merged_voxels.sort_values(['event_id', 'x', 'y', 'z'])
+
     return merged_voxels
 
 
@@ -442,8 +485,8 @@ def fill_df_with_nbours_ordered(mc_beersh_event, nbour_counts, nlabel_dict):
     #DF with the new labelled voxels, with the same indexes as the original DF
     nclass_df = pd.DataFrame({'segclass':nclass_values}, index = voxel_segclass[null_mask].index)
 
-    #Join DF and do cleaning
-    mc_beersh_event = mc_beersh_event.merge(nclass_df, left_index=True, right_index=True, how = 'outer')
+    #Join DF and do cleaning; values are sorted to avoid weird labellings
+    mc_beersh_event = mc_beersh_event.merge(nclass_df, left_index=True, right_index=True, how = 'outer').sort_values(['event_id', 'x', 'y', 'z'])
     mc_beersh_event['segclass'] = mc_beersh_event['segclass_y'].fillna(mc_beersh_event['segclass_x'])
     mc_beersh_event = mc_beersh_event.drop(['segclass_x', 'segclass_y'], axis = 1)
     assert sum(mc_beersh_event.segclass.isnull()) == len(empty_positions), 'Something failed excluding the empy voxels'

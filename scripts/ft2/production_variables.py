@@ -4,10 +4,10 @@ import re
 
 
 #Directory that will contain the created jobs/configs and the output files
-basedir = os.path.expandvars("/mnt/lustre/scratch/home/usc/ie/mpm/beersh_labelling_4mm_fid_corrected")
+basedir = os.path.expandvars("/mnt/lustre/scratch/home/usc/ie/mpm/beersh_labelling_0nubb_554mm")
 
 #Part of the in/out filename
-tag = "Tl208_NEW_v1_03_01_nexus_v5_03_04"
+tag = "0nubb"
 
 #number of jobs to launch (max is 200 in cesga)
 queue_limit = 198
@@ -17,13 +17,13 @@ jobTemp_dir    = os.path.expandvars("/home/usc/ie/mpm/data_labelling/templates/"
 configTemp_dir = os.path.expandvars("/home/usc/ie/mpm/data_labelling/templates/")
 
 #name for the in/out files and names of the job/config templates
-in_filename         = "{tag}_cut{cutnum}.beersheba_*.root.h5"
-out_filename        = "{tag}_cut{cutnum}.beersheba_label_4mm_fid_corrected.h5"
-jobTemp_filename    = "jobTemplate.sh"
+in_filename         = "beersheba_{cutnum}_{tag}.h5"
+out_filename        = "beersheba_label_{cutnum}_{tag}.h5"
+jobTemp_filename    = "jobTemplate_ft2.sh"
 configTemp_filename = "configTemplate.conf"
 
 #directory of the input files to be processed, remember to write / at the end
-indir = "/mnt/lustre/scratch/home/usc/ie/mpm/data_production_chain/prod/beersheba/"
+indir = "/mnt/lustre/scratch/home/usc/ie/mpm/N100_0nubb_data/prod/beersheba/"
 
 #path of the script to run
 scriptdir = "/home/usc/ie/mpm/data_labelling/scripts/create_labelled_dataset.py"
@@ -34,8 +34,10 @@ def get_cut_and_num(filename):
 	num = filename.split("/")[-1].split("_")[-1].split(".")[0]
 	match = re.match(r"([a-z]+)([0-9]+)", cut, re.I)
 	if match:
-	        items = match.groups()
-	cutnum = items[-1]
+		items = match.groups()
+		cutnum = items[-1]
+	else:
+		cutnum = cut
 	return cutnum, num
 
 #checks if a directory exists, if not, it creates it
@@ -57,7 +59,7 @@ def create_out_dirs():
         checkmakedir(confdir)
         checkmakedir(logsdir)
         checkmakedir(proddir)
-        
+
         return proddir, jobsdir, confdir, logsdir
 
 proddir, jobsdir, confdir, logsdir = create_out_dirs()
@@ -70,9 +72,9 @@ proddir, jobsdir, confdir, logsdir = create_out_dirs()
 #takes all the .h5 files in the specified indir. we will make a loop on them, but as I
 #want to grab all the files with the same cut, in the job creator script I will assure that
 #once one cut job/config is created, no other configs are created
-files_in = glob.glob(indir + "/" + tag + "*.h5") #para que me haga todo poner *.h5 al final
+files_in = glob.glob(indir + "/*.h5") #para que me haga todo poner *.h5 al final
 
-#for f in files_in: 
+#for f in files_in:
 #	check_filename_structure(f)
 
 #sorts all the files, first in the cut number and then in the number
@@ -86,4 +88,4 @@ files_in = sorted(files_in, key = get_cut_and_num)
 #commands for CESGA
 queue_state_command = "squeue |grep usciempm |wc -l"
 joblaunch_command   = "sbatch {job_filename}"
-jobtime             = "4:00:00"
+jobtime             = "1:00:00"

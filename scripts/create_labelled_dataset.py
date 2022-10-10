@@ -11,16 +11,24 @@ This script creates hdf5 files that contains:
 It takes a CONFIG FILE with the following information:
  - files_in              - string with the beersheba files we want to label
  - file_out              - string with the name of the output file that will contain all the labelled data from the input files
- - total_size            - tuple with the size of the detector for each coordinate (in mm), the hits outside this margins will 
+
+ - total_size            - tuple with the size of the detector for each coordinate (in mm), the hits outside this margins will
                            not be processed
  - voxel_size            - tuple with the size of the voxels for each coordinate (in mm)
  - start_bin             - tuple with the  min position of the hits for each coordinate (in mm)
+
  - label_neighbours_name - string with the name of the neighbour labelling method
+ - data_type             - string with the kind of data to label ('doublescape' for double scape, '0nubb' for neutrinoless double beta events)
+
  - blob_ener_loss_th     - threshold for the main blob class labelling (in terms of percentage of loss energy at the end
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
+
  - simple                - bool that indicates a way of voxelization for the beersheba hits (not very relevant, for now always True)
  - relabel               - bool that indicates if the residual MC voxels are reassigned to an existent beersheba voxel
+ - fix_track_connection  - string that indicates if the residual MC track voxels are included as a 0 energy voxel to avoid track interruption ('track' for only
+                           MC track voxels, 'all' for all the voxels; otherwise this won't be done.)
+
  - binclass              - bool that indicates if the process does the binary labelling
  - segclass              - bool that indicates if the process does the segmentation labelling, requires binclass True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
@@ -51,10 +59,11 @@ from utils.grouping_utils     import label_event_elements
 from utils.beersheba_labelling_utils import label_neighbours_ordered
 
 neighbours_functions_mapping = {'ordered':label_neighbours_ordered}
+data_type_mapping = {'doublescape':'conv', '0nubb':'none'}
 
 
 if __name__ == "__main__":
-    
+
     config   = configure(sys.argv).as_namespace
     filesin  = np.sort(glob(os.path.expandvars(config.files_in)))
     fileout  = os.path.expandvars(config.file_out)
@@ -65,22 +74,24 @@ if __name__ == "__main__":
         start_time = time()
         print(i, f)
         total_size, voxel_size, start_bin = config.total_size, config.voxel_size, config.start_bin
-        
+
         #We check if a file has empty dataframes; it happens sometimes
         check_df = dio.load_dst(f, 'MC', 'hits')
         if check_df.empty:
             print('This file has empty dataframes')
             continue
-        
+
         label_file_dfs = label_file(f,
                                     total_size,
                                     voxel_size,
                                     start_bin,
                                     neighbours_functions_mapping[config.label_neighbours_name],
+                                    sig_creator = data_type_mapping[config.data_type],
                                     blob_ener_loss_th = config.blob_ener_loss_th,
                                     blob_ener_th = config.blob_ener_th,
                                     simple = config.simple,
                                     relabel = config.relabel,
+                                    fix_track_connection = config.fix_track_connection,
                                     binclass = config.binclass,
                                     segclass = config.segclass,
                                     Rmax = config.Rmax,
@@ -96,6 +107,8 @@ if __name__ == "__main__":
                                                                                                                             blob_ener_loss_th = config.blob_ener_loss_th,
                                                                                                                             blob_ener_th = config.blob_ener_th,
                                                                                                                             small_blob_th = config.small_blob_th,
+                                                                                                                            max_distance = config.max_distance,
+                                                                                                                            fix_track_connection = config.fix_track_connection,
                                                                                                                             add_isaura_info = config.add_isaura_info)
         if config.max_distance != None:
             labelled_beersheba = label_event_elements(labelled_beersheba,
@@ -113,7 +126,7 @@ if __name__ == "__main__":
                 pass
             else:
                 dio.df_writer(h5out, isauraInfo    , 'DATASET', 'IsauraInfo')
-                
+
         print((time() - start_time)/60, 'mins')
 
     #I try writing here bins info to get only one line in the final dataframe
@@ -123,5 +136,3 @@ if __name__ == "__main__":
     #Pero creo que no funciona porque usan algo como .attr para sacar los atributos de cada df y yo probé y me dan vacíos, cuando entiendo que
     #deberían ser el columns_to_index para que haga algún cambio (mirar la función en IC para entender a lo que me refiero)
     index_tables(fileout)
-        
-

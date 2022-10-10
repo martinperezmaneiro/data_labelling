@@ -21,11 +21,11 @@ import sys
 from invisible_cities.core  .configure import configure
 import invisible_cities.io.dst_io as dio
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     config  = configure(sys.argv).as_namespace
     filesin = glob(os.path.expandvars(config.files_in))
     fout = os.path.expandvars(config.file_out)
-    
+
     files_to_merge = sorted(filesin)
 
     #We copy in the output file the initial file information and delete the non wanted dataframes
@@ -44,8 +44,6 @@ if __name__ == "__main__":
     #Deleting the unwanted tables
     with tb.open_file(fout, 'a') as h5out:
         h5out.remove_node(h5out.get_node(delete_voxel_tbpath))
-        h5out.remove_node(h5out.get_node('/DATASET/MCHits'))
-        h5out.remove_node(h5out.get_node('/DATASET/IsauraInfo'))
 
     #Now check that it starts from 0 in the file out
     with tb.open_file(fout, 'r+') as h5out:
@@ -54,8 +52,13 @@ if __name__ == "__main__":
         if min_dataset_id>0:
             h5out.get_node('/DATASET/EventsInfo').cols.dataset_id[:]-=min_dataset_id
             h5out.get_node(voxel_tbpath).cols.dataset_id[:]-=min_dataset_id
+            h5out.get_node('/DATASET/IsauraInfo').cols.dataset_id[:]-=min_dataset_id
+            h5out.get_node('/DATASET/MCHits').cols.dataset_id[:]-=min_dataset_id
+
             h5out.get_node('/DATASET/EventsInfo').flush()
             h5out.get_node(voxel_tbpath).flush()
+            h5out.get_node('/DATASET/IsauraInfo').flush()
+            h5out.get_node('/DATASET/MCHits').flush()
 
     #Now we do a loop on the other files to fill the output file
     for filein in files_to_merge[1:]:
@@ -75,6 +78,16 @@ if __name__ == "__main__":
                 h5out.get_node(voxel_tbpath).append(voxs)
                 h5out.get_node(voxel_tbpath).flush()
                 del(voxs)
+                isau = h5in.get_node('/DATASET/IsauraInfo')[:]
+                isau['dataset_id']+=prev_id
+                h5out.get_node('/DATASET/IsauraInfo').append(isau)
+                h5out.get_node('/DATASET/IsauraInfo').flush()
+                del(isau)
+                mch = h5in.get_node('/DATASET/MCHits')[:]
+                mch['dataset_id']+=prev_id
+                h5out.get_node('/DATASET/MCHits').append(mch)
+                h5out.get_node('/DATASET/MCHits').flush()
+                del(mch)
 
     with tb.open_file(fout, 'r+') as h5out:
         h5out.get_node('/DATASET/EventsInfo').cols.dataset_id.create_index()
