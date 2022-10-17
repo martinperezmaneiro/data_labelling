@@ -102,6 +102,7 @@ for i, file in enumerate(files_in):
     #                           'bad_blob_count':np.array(blob_count_false)}])
     #events_df['filename'] = file.split("/")[-1]
     rates_df  = pd.DataFrame([{'filenumber':i,
+                               'nevents':nevents_total,
                                'blobtrack_out': blobtrack_out_rate,
                                'sep_track':sep_track_evs_rate,
                                'interr_track':interr_track_evs_rate,
