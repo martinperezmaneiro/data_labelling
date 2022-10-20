@@ -1,6 +1,23 @@
 '''
+Script that computes some topological statistics to the labelled beersheba files
+It computes per file some features and returns a df with length = number of files
 
+Just need to set up the input files (if you have a bunch of them, make sure that
+the structure only contains one numeric identificator separated by _ and not more),
+and the name of the output file. Also you can decide whether or not apply a fiducial
+cut with apply_fiducial variable, and below it the extension of this cut.
 
+The output will be a dataframe where each line will contain information about
+a file. It will have:
+- file identificator
+- number of events of the file
+- % of events with track/blob elements out of the main track
+- % of events with physically separated tracks + blobs
+- % of events with interrupted tracks + blobs
+- % of events with bad blob counting
+
+To get the statistics of a bunch of files we just have to do a mean of the
+desired feature weighted with the number of events.
 '''
 
 import os
