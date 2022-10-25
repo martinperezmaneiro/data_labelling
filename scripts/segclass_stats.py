@@ -46,8 +46,8 @@ blob_segclass  = [3, 6]
 #drops the 0 energy voxels added
 drop_auxiliar_voxels = True
 
-files_in = "/Users/mperez/NEXT/data_labelling/examples/N100_0nubb_data/merged_beersheba_label_554mm_0nubb.h5"
-file_out = "/Users/mperez/NEXT/data_labelling/examples/N100_0nubb_data/merged_beersheba_label_554mm_0nubb_stats.h5"
+files_in = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/sep_track_evs/add_all_mc_voxels/prod/beersheba_*.h5"
+file_out = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/sep_track_evs/add_all_mc_voxels/truly_dropped.h5"
 
 files_in = glob.glob(os.path.expandvars(files_in))
 
@@ -65,7 +65,7 @@ for i, file in enumerate(files_in):
     #bins_info     = dio.load_dst(file, 'DATASET', 'BinsInfo')
 
     if drop_auxiliar_voxels:
-        beersh_voxels = beersh_voxels[beersh_voxels. != 0]
+        beersh_voxels = beersh_voxels[beersh_voxels.energy != 0]
     #beersh_voxels_voxels = add_elem_number(beersh_voxels)
     #bins = bin_creator(bins_info)
 
