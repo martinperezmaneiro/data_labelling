@@ -43,6 +43,9 @@ zrange = [20, 1280] #[0, 1300]
 track_segclass = [2, 5]
 blob_segclass  = [3, 6]
 
+#drops the 0 energy voxels added
+drop_auxiliar_voxels = True
+
 files_in = "/Users/mperez/NEXT/data_labelling/examples/N100_0nubb_data/merged_beersheba_label_554mm_0nubb.h5"
 file_out = "/Users/mperez/NEXT/data_labelling/examples/N100_0nubb_data/merged_beersheba_label_554mm_0nubb_stats.h5"
 
@@ -61,6 +64,8 @@ for i, file in enumerate(files_in):
     #events_info   = dio.load_dst(file, 'DATASET', 'EventsInfo')
     #bins_info     = dio.load_dst(file, 'DATASET', 'BinsInfo')
 
+    if drop_auxiliar_voxels:
+        beersh_voxels = beersh_voxels[beersh_voxels. != 0]
     #beersh_voxels_voxels = add_elem_number(beersh_voxels)
     #bins = bin_creator(bins_info)
 
