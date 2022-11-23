@@ -35,10 +35,17 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
     #because both doublescape and 0nubb have either a conv or none created electron
     #the bkg of the doublescape won't have any electron created by conv
     #the bkg of the 0nubb won't have any electron created by none
-    class_label = hits_part.groupby('event_id').apply(lambda x: 1 if any((x.creator_proc == sig_creator) & (x.particle_name == 'e-')) else 0)
+    #Adding the RoI electrons this seemed more complicated than the other option
+    #class_label = hits_part.groupby('event_id').apply(lambda x: 1 if any((x.creator_proc == sig_creator) & (x.particle_name == 'e-')) else 0)
 
-    #There is this alternative which is more rudimentary but I know it works for sure
-    #class_label = mcpart.groupby('event_id').creator_proc.apply(lambda x:sum(x==sig_creator)).astype(int).replace({2:1})
+    #With this selector we have:
+    #doublescape: its sig_creator is 'conv', so the events with 2 created conv particles would be
+    #signal (events with a e+e-), and for the rest (no conv, can be whatever) background
+    #0nubb: its sig creator is 'none', so the events with 2 created none particles would be signal
+    #(that is, events with 0nubb), and for the rest (208Tl, 214Bi... have just one none particle,
+    #the nuclei itself; the 1eroi have also just one none particle, the e-) background
+    selector = lambda x: 1 if int(sum(x == sig_creator)) == 2 else 0
+    class_label = mcpart.groupby('event_id').creator_proc.apply(selector).astype(int)
 
     class_label.name = 'binclass'
 
@@ -116,9 +123,10 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
 
     #Para background cogemos los electrones que fueron creados por compton, y de ellos escogemos el más energético
     #Tendremos 1 traza/evento
+    #We added none electrons as we have now the 1eroi data with none electrons generated as background
     tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
                                    (per_part_info.particle_name == 'e-') &\
-                                   (per_part_info.creator_proc.isin(['compt', 'phot']))]
+                                   (per_part_info.creator_proc.isin(['compt', 'phot', 'none']))]
 
     tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
 
