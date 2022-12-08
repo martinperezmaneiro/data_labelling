@@ -7,7 +7,7 @@ from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_da
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, small_blob_th = 0.1):
+def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, small_blob_th = 0.1, evt_list = None):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling.
@@ -53,6 +53,11 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     #Obtenemos la información de partíuclas y hits de un fichero en concreto
     mcpart = dio.load_dst(directory, 'MC', 'particles')
     mchits = dio.load_dst(directory, 'MC', 'hits')
+
+    #Pick events from list
+    if evt_list is not None:
+        mcpart = mcpart[np.isin(mcpart.event_id, evt_list)]
+        mchits = mchits[np.isin(mchits.event_id, evt_list)]
 
     #Seleccionamos los hits activos
     mchits = mchits[mchits.label == 'ACTIVE']

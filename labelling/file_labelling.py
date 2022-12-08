@@ -22,7 +22,8 @@ def label_file(directory,
                binclass = True,
                segclass = True,
                Rmax = np.nan,
-               small_blob_th = 0.1):
+               small_blob_th = 0.1, 
+               evt_list = None):
     '''
     Function that performs the whole beersheba labelling. Starting from the MC hits, they are labelled in three
     classes (rest, track, blob) and voxelized with the labelling_MC function. Then, with the labelling_beersheba
@@ -112,7 +113,8 @@ def label_file(directory,
                                                             blob_ener_loss_th = blob_ener_loss_th,
                                                             blob_ener_th = blob_ener_th,
                                                             Rmax = Rmax,
-                                                            small_blob_th = small_blob_th)
+                                                            small_blob_th = small_blob_th, 
+                                                            evt_list = evt_list)
 
     if binclass and segclass:
         labelled_beersheba = labelling_beersheba(directory,

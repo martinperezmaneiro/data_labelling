@@ -117,3 +117,38 @@ def get_separated_segclass(segclass_counting):
         print('The selected segname does not belong to any possible segclass')
 
     return segclass_counting, sep_segclass, total_elem_count, interr_segclass
+
+
+def get_ev_list_stats(labelled_beersheba, track_segclass = [2, 5], blob_segclass = [3, 6]):
+    
+    #blob/track out of the main cloud
+    secondary_clouds = get_secondary_clouds(labelled_beersheba)
+    blobtrack_out_evs = secondary_clouds[(np.isin(secondary_clouds.segclass, [2, 3]))].dataset_id.unique()
+    
+    #TRACKS
+    track_counting = get_segclass_count(labelled_beersheba, track_segclass)
+    track_counting, separated_tracks, total_tracks_count, interr_tracks = get_separated_segclass(track_counting)
+
+    #physically separated tracks
+    sep_track_evs = separated_tracks.dataset_id.unique()
+
+    #interrupted tracks
+    interr_track_evs = interr_tracks.dataset_id.unique()
+    
+    #BLOBS
+    blob_counting = get_segclass_count(labelled_beersheba, blob_segclass)
+    blob_counting, separated_blobs, total_blobs_count, interr_blobs = get_separated_segclass(blob_counting)
+
+    ##physically separated blobs
+    sep_blob_evs = separated_blobs.dataset_id.unique()
+
+    ##interrupted blobs
+    interr_blob_evs = interr_blobs.dataset_id.unique()
+
+    ##good blob count
+    blob_count_succ = labelled_beersheba[(labelled_beersheba.blob_success == True)][['dataset_id', 'binclass', 'nblob', 'blob_success']].drop_duplicates()
+    blob_count_evs = blob_count_succ.dataset_id.unique()
+    
+    var_list = ['blobtrack_out', 'sep_track', 'interr_track', 'sep_blob', 'interr_blob', 'blob_count_succ']
+    
+    return [blobtrack_out_evs, sep_track_evs, interr_track_evs, sep_blob_evs, interr_blob_evs, blob_count_evs], var_list

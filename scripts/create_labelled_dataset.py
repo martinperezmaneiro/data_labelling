@@ -95,7 +95,8 @@ if __name__ == "__main__":
                                     binclass = config.binclass,
                                     segclass = config.segclass,
                                     Rmax = config.Rmax,
-                                    small_blob_th = config.small_blob_th)
+                                    small_blob_th = config.small_blob_th, 
+                                    evt_list = None)
         labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo = create_final_dataframes(label_file_dfs,
                                                                                                                             start_id,
                                                                                                                             f,
