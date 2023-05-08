@@ -19,8 +19,8 @@ def label_file(directory,
                simple = True,
                relabel = True,
                fix_track_connection = False,
-               binclass = True,
-               segclass = True,
+               mc_label = True,
+               beersh_label = True,
                Rmax = np.nan,
                small_blob_th = 0.1, 
                evt_list = None):
@@ -74,12 +74,12 @@ def label_file(directory,
     If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
     Otherwise this won't be done.
 
-        binclass: BOOL
+        mc_label: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.
 
-        segclass: BOOL
-    If True, and if binclass is also True (because we need MC labelled voxels information), labelling_beersheba
-    will be passed. Otherwise, if False or if binclass False, will return an empty dataframe.
+        beersh_label: BOOL
+    If True, and if mc_label is also True (because we need MC labelled voxels information), labelling_beersheba
+    will be passed. Otherwise, if False or if mc_label False, will return an empty dataframe.
 
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
@@ -89,22 +89,22 @@ def label_file(directory,
 
     RETURNS:
         labelled_MC_voxels: DATAFRAME
-    If the conditions are satisfied (binclass = True), this contains the labelled MC voxels for each event in
+    If the conditions are satisfied (mc_label = True), this contains the labelled MC voxels for each event in
     the file.
 
         labelled_MC_hits: DATAFRAME
-    If the conditions are satisfied (binclass = True), this contains the labelled MC hits for each event in the
+    If the conditions are satisfied (mc_label = True), this contains the labelled MC hits for each event in the
     file. We will use them to plot nicer images.
 
         labelled_beersheba: DATAFRAME
-    If the conditions are satisfied (binclass and segclas = True), this contains the labelled beersheba voxels
+    If the conditions are satisfied (mc_label and segclas = True), this contains the labelled beersheba voxels
     for each event in the file.
     '''
 
-    #Just in case binclass and segclass are False, to return something
+    #Just in case mc_label and beersh_label are False, to return something
     labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-    if binclass:
+    if mc_label:
         labelled_MC_voxels, labelled_MC_hits = labelling_MC(directory,
                                                             total_size,
                                                             voxel_size,
@@ -116,7 +116,7 @@ def label_file(directory,
                                                             small_blob_th = small_blob_th, 
                                                             evt_list = evt_list)
 
-    if binclass and segclass:
+    if mc_label and beersh_label:
         labelled_beersheba = labelling_beersheba(directory,
                                                  total_size,
                                                  voxel_size,
@@ -214,17 +214,17 @@ def create_final_dataframes(label_file_dfs,
 
     RETURNS:
         labelled_MC_voxels: DATAFRAME
-    If the conditions are satisfied (binclass = True, i.e. the dataframe is not empty), this contains the
+    If the conditions are satisfied (mc_label = True, i.e. the dataframe is not empty), this contains the
     labelled MC voxels for each event in the file, and it has been added a dataset_id that maps each voxel
     with the event information.
 
         labelled_MC_hits: DATAFRAME
-    If the conditions are satisfied (binclass = True, i.e. the dataframe is not empty), this contains the
+    If the conditions are satisfied (mc_label = True, i.e. the dataframe is not empty), this contains the
     labelled MC hits for each event in the file, and it has been added a dataset_id that maps each hit
     with the event information. We will use them to plot nicer images.
 
         labelled_beersheba: DATAFRAME
-    If the conditions are satisfied (binclass and segclas = True, i.e. the dataframe is not empty), this
+    If the conditions are satisfied (mc_label and segclas = True, i.e. the dataframe is not empty), this
     contains the labelled beersheba voxels for each event in the file, and it has been added a dataset_id
     that maps each voxel with the event information.
 

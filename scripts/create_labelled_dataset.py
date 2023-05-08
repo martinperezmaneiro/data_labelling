@@ -29,8 +29,8 @@ It takes a CONFIG FILE with the following information:
  - fix_track_connection  - string that indicates if the residual MC track voxels are included as a 0 energy voxel to avoid track interruption ('track' for only
                            MC track voxels, 'all' for all the voxels; otherwise this won't be done.)
 
- - binclass              - bool that indicates if the process does the binary labelling
- - segclass              - bool that indicates if the process does the segmentation labelling, requires binclass True
+ - mc_label              - bool that indicates if the process does the labelling to the MC data
+ - beersh_label          - bool that indicates if the process does the labelling to the Beersheba data, requires mc_label True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
  - small_blob_th         - energy threshold for the blob hits to be marked as small blobs, so the voxelization always represents them
  - max_distance          - value of the maximum distance between voxels to perform the group counting algorythm, usually sqrt(3); if None, grouping is not performed
@@ -92,8 +92,8 @@ if __name__ == "__main__":
                                     simple = config.simple,
                                     relabel = config.relabel,
                                     fix_track_connection = config.fix_track_connection,
-                                    binclass = config.binclass,
-                                    segclass = config.segclass,
+                                    mc_label = config.mc_label,
+                                    beersh_label = config.beersh_label,
                                     Rmax = config.Rmax,
                                     small_blob_th = config.small_blob_th, 
                                     evt_list = None)
