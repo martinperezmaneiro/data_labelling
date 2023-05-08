@@ -112,10 +112,15 @@ if __name__ == "__main__":
                                                                                                                             fix_track_connection = config.fix_track_connection,
                                                                                                                             add_isaura_info = config.add_isaura_info)
         if config.max_distance != None:
-            labelled_beersheba = label_event_elements(labelled_beersheba,
-                                                      config.max_distance,
-                                                      coords = ['xbin', 'ybin', 'zbin'],
-                                                      ene_label = 'energy')
+            if config.mc_label:
+                labelled_MC_voxels = label_event_elements(labelled_MC_voxels, 
+                                                          config.max_distance)
+            if config.mc_label and config.beersh_label:
+                labelled_beersheba = label_event_elements(labelled_beersheba, 
+                                                          config.max_distance, 
+                                                          coords = ['xbin', 'ybin', 'zbin'],
+                                                          ene_label = 'energy')
+                
         start_id +=len(eventInfo)
         with tb.open_file(fileout, 'a') as h5out:
             dio.df_writer(h5out, labelled_MC_hits  , 'DATASET', 'MCHits'         , columns_to_index=['dataset_id'])

@@ -116,7 +116,7 @@ def label_file(directory,
                                                             small_blob_th = small_blob_th, 
                                                             evt_list = evt_list)
 
-    if mc_label and beersh_label:
+    elif mc_label and beersh_label:
         labelled_beersheba = labelling_beersheba(directory,
                                                  total_size,
                                                  voxel_size,
@@ -263,6 +263,8 @@ def create_final_dataframes(label_file_dfs,
         labelled_MC_hits   = labelled_MC_hits.drop('event_id', axis=1)
 
         if labelled_beersheba.empty:
+            #just so I don't get an error when writing an empty df
+            labelled_beersheba = pd.DataFrame([], columns = ['dataset_id'])
             print('Beersheba labelling has not been performed')
         else:
             labelled_beersheba = labelled_beersheba.assign(dataset_id = labelled_beersheba.event_id.map(dct_map))
