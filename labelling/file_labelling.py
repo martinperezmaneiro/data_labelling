@@ -246,7 +246,7 @@ def create_final_dataframes(label_file_dfs,
     else:
         eventInfo = labelled_MC_voxels[['event_id', 'binclass']].drop_duplicates().reset_index(drop=True)
         #Making sure all datasets have the same event_id type for merging all datasets for the net
-        eventInfo['event_id'] = eventInfo['event_id'].astype(np.int32)
+        eventInfo['event_id'] = eventInfo['event_id'].astype(np.int64)
         dct_map = {eventInfo.iloc[i].event_id : i + start_id for i in range(len(eventInfo))}
         pathname, basename = os.path.split(directory)
         label_pathname, label_basename = os.path.split(destination_directory)
