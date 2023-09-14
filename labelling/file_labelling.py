@@ -115,8 +115,10 @@ def label_file(directory,
                                                             Rmax = Rmax,
                                                             small_blob_th = small_blob_th, 
                                                             evt_list = evt_list)
+    else:
+        print('No MC labelling has been performed')
 
-    elif mc_label and beersh_label:
+    if mc_label and beersh_label:
         labelled_beersheba = labelling_beersheba(directory,
                                                  total_size,
                                                  voxel_size,
@@ -135,7 +137,7 @@ def label_file(directory,
                                                                 'beersh_ener': 'energy',
                                                                 'ener': 'MC_ener'})
     else:
-        print('No labelling has been performed')
+        print('No beersheba labelling has been performed')
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba
 
