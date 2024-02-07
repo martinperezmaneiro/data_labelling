@@ -40,9 +40,16 @@ if __name__ == "__main__":
                                                   file_out = file_out))
 
         #we create the commands to be written in the job file, such as the scripth path
-        commands = "python {script_directory} {config_directory}".format(script_directory = scriptdir,
-                                                                         config_directory = config)
-
+        commands = "python {script_directory} {config_directory}\n".format(script_directory = scriptdir,
+                                                                           config_directory = config)
+        if isaura_for_nexus:
+            commands += "python {script_directory} {config_directory}\n".format(script_directory = isaura_script_dir,
+                                                                                config_directory = config)
+        
+        if graph_info_nexus:
+            commands += "python {script_directory} {config_directory}\n".format(script_directory = graph_info_dir,
+                                                                                config_directory = config)
+        
         ######### CREATE TASKS (each one with one labelling command)############
         #create the task file to write the template on it
         task = taskdir + "task_{n}.sh".format(n = n)
