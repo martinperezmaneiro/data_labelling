@@ -152,3 +152,59 @@ def get_ev_list_stats(labelled_beersheba, track_segclass = [2, 5], blob_segclass
     var_list = ['blobtrack_out', 'sep_track', 'interr_track', 'sep_blob', 'interr_blob', 'blob_count_succ']
     
     return [blobtrack_out_evs, sep_track_evs, interr_track_evs, sep_blob_evs, interr_blob_evs, blob_count_evs], var_list
+
+
+def create_df_cloud_stats(i, file, voxel_df, track_segclass = [2, 5], blob_segclass  = [3, 6]):
+    ''' 
+    Final breaking tracks stats creator
+    '''
+    nevents_total = len(voxel_df.dataset_id.unique())
+    secondary_clouds = get_secondary_clouds(voxel_df)
+    #percentage of events with a track/blob element out of the main cloud
+    blobtrack_out_evs  = secondary_clouds[(np.isin(secondary_clouds.segclass, [2, 3]))].dataset_id.unique()
+    blobtrack_out_rate = len(blobtrack_out_evs) / nevents_total
+
+    #track statistics
+    track_counting = get_segclass_count(voxel_df, track_segclass)
+    track_counting, separated_tracks, total_tracks_count, interr_tracks = get_separated_segclass(track_counting)
+    ##physically separated tracks
+    sep_track_evs = separated_tracks.dataset_id.unique()
+    sep_track_evs_rate = len(sep_track_evs) /len(track_counting)
+    ##interrupted tracks
+    interr_track_evs = interr_tracks.dataset_id.unique()
+    interr_track_evs_rate = len(interr_track_evs) / len(track_counting)
+
+    #blob statistics
+    blob_counting = get_segclass_count(voxel_df, blob_segclass)
+    blob_counting, separated_blobs, total_blobs_count, interr_blobs = get_separated_segclass(blob_counting)
+    ##physically separated blobs
+    sep_blob_evs = separated_blobs.dataset_id.unique()
+    sep_blob_evs_rate = len(sep_blob_evs) / len(blob_counting)
+    ##interrupted blobs
+    interr_blob_evs = interr_blobs.dataset_id.unique()
+    interr_blob_evs_rate = len(interr_blob_evs) / len(blob_counting)
+    ##bad blob count
+    blob_count_false = voxel_df[(voxel_df.blob_success == False)][['dataset_id', 'binclass', 'nblob', 'blob_success']].drop_duplicates()
+    blob_count_false_rate = len(blob_count_false) / nevents_total
+
+    events_df = pd.DataFrame([{'filenumber':i,
+                              'nevents':nevents_total,
+                              'blobtrack_out': np.array(blobtrack_out_evs),
+                              'sep_track':np.array(sep_track_evs),
+                              'interr_track':np.array(interr_track_evs),
+                              'sep_blob':np.array(sep_blob_evs),
+                              'interr_blob':np.array(interr_blob_evs),
+                              'bad_blob_count':np.array(blob_count_false)}])
+    events_df['filename'] = file.split("/")[-1]
+
+    rates_df  = pd.DataFrame([{'filenumber':i,
+                                'nevents':nevents_total,
+                                'blobtrack_out': blobtrack_out_rate,
+                                'sep_track':sep_track_evs_rate,
+                                'interr_track':interr_track_evs_rate,
+                                'sep_blob':sep_blob_evs_rate,
+                                'interr_blob':interr_blob_evs_rate,
+                                'bad_blob_count':blob_count_false_rate}])
+    rates_df['filename'] = file.split("/")[-1]
+
+    return rates_df, events_df
