@@ -78,20 +78,22 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
         mccoors  = np.array([xhits, yhits, zhits]).T
         mcenes   = np.array(event_hits['E'])
         if simple == True:
-            ener_histo = mcimg(mccoors, mcenes, detector_bins)
-            voxel_df = voxel_df.append(histog_to_coord(event_id, None, ener_histo, None, detector_bins, binnum = binnum))
+            ener_histo    = mcimg(mccoors, mcenes, detector_bins)
+            nhits_hist, _ = np.histogramdd(mccoors, detector_bins)
+            voxel_df = voxel_df.append(histog_to_coord(event_id, None, ener_histo, None, nhits_hist, detector_bins, binnum = binnum))
         else:
             labels   = np.array(event_hits['npeak']) + 1 #the addition is for the functions to recognize the label
             #as it is based in an histogram where the algorythm looks into the nonzero coords
-            label_histo, ener_histo, ratio_histo = voxel_labelling_MC(detector_frame,
-                                                                      mccoors,
-                                                                      mcenes,
-                                                                      labels,
-                                                                      detector_bins)
+            label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(detector_frame,
+                                                                                  mccoors,
+                                                                                  mcenes,
+                                                                                  labels,
+                                                                                  detector_bins)
             voxel_df = voxel_df.append(histog_to_coord(event_id,
                                                        label_histo,
                                                        ener_histo,
                                                        ratio_histo,
+                                                       nhits_hist,
                                                        detector_bins,
                                                        binnum = binnum,
                                                        id_name = 'npeak'))

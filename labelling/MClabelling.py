@@ -86,9 +86,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
         binclass = np.array(event_hits['binclass'])[0]
         small_b  = np.array(event_hits['small_b'])
 
-        label_histo, ener_histo, ratio_histo = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b,  bins)
+        label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b,  bins)
 
-        voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, bins, binnum = binclass))
+        voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, nhits_hist, bins, binnum = binclass))
 
     voxelization_df.reset_index()
 

@@ -261,6 +261,9 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
     D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is
     defined by its id) to the total energy, per voxel.
 
+        nhits_hist: NUMPYARRAY
+    D-dimensional histogram with the number of hits for each voxel.
+
     '''
 
     mc_hit_id      = np.zeros(img.shape)   #array 3d a llenar con los identificadores
@@ -269,6 +272,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
 
     mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías
     small_b_hist, _ = np.histogramdd(mccoors, bins, weights = small_b_mask) #histograma con los hits de blobs pequeños
+    nhits_hist,   _ = np.histogramdd(mccoors, bins) #histograma con el numero de hits en cada voxel
 
     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
     histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
@@ -317,7 +321,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
             total_ener = mc_hit_ener[nonzero_coors] #la energía total contenida en ese voxel
             mc_hit_portion[nonzero_coors] = max_ener / total_ener
 
-    return mc_hit_id, mc_hit_ener, mc_hit_portion
+    return mc_hit_id, mc_hit_ener, mc_hit_portion, nhits_hist
 
 
 def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifier = 'event_id'):

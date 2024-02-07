@@ -68,7 +68,7 @@ def get_mchits_info(nevent, df, identifyer = 'particle_id', binclass = False):
         return mccoors, eners, ids
 
 
-def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = None, id_name = 'segclass'):
+def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, nhits_hist, bins, binnum = None, id_name = 'segclass'):
     '''
     Takes the histogram (i.e. any voxelization) and returns an array of the voxel coordinates, their energies and
     ratio energies, and their feature
@@ -88,6 +88,9 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is
     defined by its id) to the total energy, per voxel.
 
+        nhits_hist: NUMPYARRAY
+    D-dimensional histogram with the number of hits per voxel.
+
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
 
@@ -100,7 +103,7 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     RETURN:
         df: DATAFRAME
     Coordinates of the nonzero voxels, their features and binclass, with the structure (D-coords, eners,
-    ratio, features, binclass). The df has the length of the number of nonzero elements in the histogram.
+    ratio, features, nhits, binclass). The df has the length of the number of nonzero elements in the histogram.
     '''
 
     column_names  = ['x', 'y', 'z', 'ener']
@@ -120,6 +123,10 @@ def histog_to_coord(event_id, id_hist, ener_hist, ratio_hist, bins, binnum = Non
     if type(id_hist) != type(None):
         column_names.append(id_name)
         coord.append(id_hist[nonzero])
+
+    if type(nhits_hist) != type(None):
+        column_names.append('nhits')
+        coord.append(nhits_hist[nonzero])
 
     if binnum != None:
         column_names.append('binclass')
