@@ -11,11 +11,11 @@ tag = "0nubb"
 
 #number of jobs to launch (max is 30 in ft3, but you can add any number of tasks per job
 #while it doesn't pass the time per job)
-queue_limit   = 40
-tasks_per_job = 10
+queue_limit   = 30
+tasks_per_job = 20
 
 #directory of the input files to be processed, remember to write / at the end
-indir = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/data/0nubb/prod/beersheba"
+indir = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/data/0nubb/prod/beersheba/"
 
 #path of the script to run
 scriptdir = "/home/usc/ie/mpm/data_labelling/scripts/create_labelled_dataset.py"
