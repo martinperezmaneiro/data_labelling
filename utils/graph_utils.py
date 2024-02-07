@@ -26,7 +26,7 @@ def create_graph_with_attributes(df, max_distance, coords, ener_label = 'ener'):
     voxel = [tuple(x) for x in df[coords].to_numpy()]
     eners = df[ener_label].values
     segcl = df['segclass'].values
-    if np.isin('nhits', df):
+    if np.isin('nhits', df.columns):
         nhits = df['nhits'].values
     else:
         nhits = np.zeros(len(df))
