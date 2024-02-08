@@ -65,6 +65,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     #Etiquetamos los hits
     labelled_hits = add_hits_labels_MC(mchits, mcpart, sig_creator = sig_creator,
                                        blob_ener_loss_th = blob_ener_loss_th, blob_ener_th = blob_ener_th)
+    
+    #try to free some memory
+    del mchits, mcpart
 
     #Hacemos los cortes en los hits
     labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
@@ -87,8 +90,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
         small_b  = np.array(event_hits['small_b'])
 
         label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b,  bins)
+        del mccoors, mcenes, labels, small_b, xhits, yhits, zhits
 
         voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, nhits_hist, bins, binnum = binclass))
+        del label_histo, ener_histo, ratio_histo, nhits_hist
 
     voxelization_df.reset_index()
 

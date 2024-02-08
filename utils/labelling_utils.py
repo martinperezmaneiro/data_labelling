@@ -97,7 +97,7 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     #Unimos los df de hits y particulas, haciendo que a cada hit de mchits se le añada la información
     #de la partícula que viene en mcpart
     hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id'])
-
+    del mchits, mcpart
     #Agrupamos todos los hits de cada partícula de cada evento y sumamos su energía para obtener la
     #energía depositada por cada partícula (más otra información)
     per_part_info = hits_part.groupby(['event_id',
@@ -127,17 +127,20 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
                                    (per_part_info.particle_name == 'e-') &\
                                    (per_part_info.creator_proc.isin(['compt', 'phot', 'none']))]
+    del per_part_info, signal_event_ids, background_event_ids
 
     tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
 
     #Unimos la información de todas las trazas y le añadimos la etiqueta track en una nueva columna segclass
     tracks_info = pd.concat([tracks_bkg, tracks_sig]).sort_values('event_id')
     tracks_info = tracks_info.assign(segclass = label_dict['track'])
+    del tracks_sig, tracks_bkg
 
     #Añadimos al df de información de hits y partículas la nueva columna de etiquetas de voxel
     hits_part  = hits_part.reset_index()
     hits_label = hits_part.merge(tracks_info[['event_id', 'particle_id', 'track_ener', 'segclass']],
                                  how='outer', on=['event_id', 'particle_id'])
+    del hits_part
 
     #Todas las partículas que ahora en segclass no tienen valor se les adjudica la etiqueta rest
     hits_label.segclass = hits_label.segclass.fillna(label_dict['rest'])
@@ -163,18 +166,22 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
 
     #Ahora, dentro de todos los hits, escojo los últimos hits de clase track que sumen menos de delta_e
     hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
+    del blob_mask
 
     #Cojo la informacion de las trazas que tienen blobs etiquetados y miro cuales de esas quedaron sin ningun blob
     blob_labelled_tracks = hits_label[hits_label.segclass == label_dict['blob']][['event_id', 'particle_id']].drop_duplicates()
     missing_blob_mask = tracks_info[['event_id', 'particle_id']].merge(blob_labelled_tracks, how='left', indicator=True)._merge == 'left_only'
     blobless_tracks = tracks_info[missing_blob_mask.values]
+    del blob_labelled_tracks, missing_blob_mask
 
     #Localizo los hits de esas trazas (que suelen ser muy pocos por cada traza) y los etiqueto todos como blob, así no queda ninguna traza sin blob
     missing_hits_mask = hits_label[['event_id', 'particle_id']].merge(blobless_tracks, how='left', indicator=True)._merge == 'both'
     hits_label.loc[(hits_label.segclass==label_dict['track'])& missing_hits_mask.values, 'segclass'] = label_dict['blob']
+    del blobless_tracks, missing_hits_mask
 
     #Calculo la distancia entre hits de las trazas y lo añado al df de información que tenía
     hits_label_dist = calculate_track_distances(tracks_info, hits_label)
+    del tracks_info, hits_label
 
     #Escojo solo la información que me interesa
     hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
@@ -284,6 +291,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
                                 weights = mcenes[hit_id_mask]) #histograma de energia por tipo de hit
         histograms.append(vox)                                 #lista de histogramas
         nonzero.append(np.array(vox.nonzero()).T)              #lista con las coordenadas no nulas
+    del mccoors, mcenes, hits_id, small_b_mask
 
     #Bucle recorriendo los voxeles no nulos para comparar el valor de cada histograma
 
@@ -349,6 +357,7 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifie
 
     #Creo el boundary cut (elimina hits fuera del tamaño del detector deseado)
     binsX, binsY, binsZ = bins
+    del bins
     boundary_cut = (hits[coords[0]]>=binsX.min()) & (hits[coords[0]]<=binsX.max())\
                  & (hits[coords[1]]>=binsY.min()) & (hits[coords[1]]<=binsY.max())\
                  & (hits[coords[2]]>=binsZ.min()) & (hits[coords[2]]<=binsZ.max())

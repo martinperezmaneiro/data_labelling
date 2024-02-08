@@ -243,6 +243,7 @@ def create_final_dataframes(label_file_dfs,
     '''
 
     labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = label_file_dfs
+    del label_file_dfs
     if labelled_MC_voxels.empty:
         raise Exception('DataFrames are empty, labelling has not been performed')
     else:
