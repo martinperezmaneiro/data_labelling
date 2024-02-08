@@ -17,7 +17,7 @@ if __name__ == "__main__":
     outfile  = config.file_out
 
     voxel_x, voxel_y, voxel_z = config.voxel_size
-    vox_size = [config.voxel_x * mm, config.voxel_y * mm, config.voxel_z * mm]
+    vox_size = [voxel_x * mm, voxel_y * mm, voxel_z * mm]
 
     track_creator = track_blob_info_creator_extractor(vox_size=vox_size    , energy_type=evm.HitEnergy.E,
                                                     strict_vox_size=False, energy_threshold=config.ethr * keV,
