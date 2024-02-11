@@ -48,5 +48,9 @@ if __name__ == "__main__":
 
     df_all = pd.concat(tracks)
     with tb.open_file(outfile, 'a') as h5out:
+        #delete the info if already written
+        if 'DATASET/IsauraMCInfo' in h5out:
+            h5out.root['DATASET']['IsauraMCInfo']._f_remove()
+            
         df_writer(h5out, df_all, 'DATASET', 'IsauraMCInfo')
     #df_all.to_hdf(outfile, key='DATASET/IsauraMCInfo', mode='w')
