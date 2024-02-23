@@ -17,6 +17,6 @@ if __name__ == "__main__":
 
     voxels = load_dst(infile, 'DATASET', config.voxel_tablename)
 
-    graphs = create_graph_dict(voxels, config.max_distance, coords = config.coords, ener_label = config.ener_label)
+    graphs = create_graph_dict(voxels, config.max_distance, coords = config.coords, ener_label = config.ener_label, add_distant_edges = config.add_distant_edges)
 
     nx.write_gpickle(graphs, outfile)
