@@ -29,10 +29,13 @@ import numpy as np
 import invisible_cities.io.dst_io       as dio
 from invisible_cities.cities.components import index_tables
 
-from utils.blob_distances_utils import bin_creator
-from utils.statistics_utils.stats_functions import add_elem_number, apply_fiducial_cut, get_ghost_other_clouds, get_secondary_clouds, get_segclass_count, get_separated_segclass, create_df_cloud_stats
-from utils.statistics_utils.stats_plots     import plot_cloud_ener_distr, histogram_statistics, plot_secondary_clouds_elements
+from utils.statistics_utils.stats_functions import apply_fiducial_cut, create_df_cloud_stats
 
+filepath = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/sep_track_evs/add_all_mc_voxels/"
+files_in = filepath + "prod/beersheba_*.h5"
+file_out = filepath + "truly_dropped.h5"
+voxel_table = "BeershebaVoxels"
+isaura_table = "IsauraInfo"
 
 #NEXT100 FIDUCIAL CUT
 apply_fiducial = False
@@ -42,9 +45,6 @@ zrange = [20, 1280] #[0, 1300]
 #SEGCLASS
 track_segclass = [2, 5]
 blob_segclass  = [3, 6]
-
-files_in = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/sep_track_evs/add_all_mc_voxels/prod/beersheba_*.h5"
-file_out = "/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/labelled_data/0nubb/sep_track_evs/add_all_mc_voxels/truly_dropped.h5"
 
 files_in = glob.glob(os.path.expandvars(files_in))
 
@@ -56,31 +56,25 @@ for i, slices in enumerate(files_in[0].split("/")[-1].split("_")):
 #df = pd.DataFrame()
 
 for i, file in enumerate(files_in):
-    #MC_hits       = dio.load_dst(file, 'DATASET', 'MCHits')
-    beersh_voxels = dio.load_dst(file, 'DATASET', 'BeershebaVoxels')
-    #events_info   = dio.load_dst(file, 'DATASET', 'EventsInfo')
-    #bins_info     = dio.load_dst(file, 'DATASET', 'BinsInfo')
-
-    #beersh_voxels_voxels = add_elem_number(beersh_voxels)
-    #bins = bin_creator(bins_info)
+    voxels = dio.load_dst(file, 'DATASET', voxel_table)
 
     with tb.open_file(file, 'r') as h5in:
         group = getattr(h5in.root, 'DATASET')
-        if 'IsauraInfo' not in group:
+        if isaura_table not in group:
             has_isaura = False
             print("File doesn't have Isaura information")
         else:
             has_isaura = True
             print("File has Isaura information")
-            isaura_info   = dio.load_dst(file, 'DATASET', 'IsauraInfo')
+            isaura_info   = dio.load_dst(file, 'DATASET', isaura_table)
 
     if apply_fiducial and has_isaura:
-        beersh_voxels_nocut = beersh_voxels.copy()
-        beersh_voxels = apply_fiducial_cut(isaura_info, beersh_voxels, rmax = rmax, zrange = zrange)
-        cut_eff = len(beersh_voxels.dataset_id.unique()) / len(beersh_voxels_nocut.dataset_id.unique())
+        voxels_nocut = voxels.copy()
+        voxels = apply_fiducial_cut(isaura_info, voxels, rmax = rmax, zrange = zrange)
+        cut_eff = len(voxels.dataset_id.unique()) / len(voxels_nocut.dataset_id.unique())
         print("Fiducial cut applied with an efficiency of {:.4f}".format(cut_eff))
 
-    rates_df, events_df = create_df_cloud_stats(i, file, beersh_voxels, track_segclass = [2, 5], blob_segclass  = [3, 6])
+    rates_df, events_df = create_df_cloud_stats(i, file, voxels, track_segclass = track_segclass, blob_segclass  = blob_segclass)
 
     with tb.open_file(file_out, 'a') as h5out:
         #dio.df_writer(h5out, events_df, 'STATS', 'events', columns_to_index = ['filenumber'], str_col_length = 128)
