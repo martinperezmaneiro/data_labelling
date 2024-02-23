@@ -63,6 +63,7 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
 
     #Joining of the MC and beersheba voxels, and discrepancies correction
     mc_beersh_voxels = merge_MC_beersh_voxels(labelled_MC_voxels, beersh_voxels, relabel = relabel, fix_track_connection = fix_track_connection)
+    del beersh_voxels
 
     for event_id, df in mc_beersh_voxels.groupby('event_id'):
         #if event_id % 50 == 0:
@@ -88,6 +89,7 @@ def labelling_beersheba(beersh_dir, total_size, voxel_size, start_bin, labelled_
 
         #Check that the merge was sucessful
         assert pd.to_numeric(mc_beersh_voxels_ev.segclass, downcast = 'integer').equals(event_neighbours_labelled.segclass)
+        del mc_beersh_voxels_ev, event_neighbours_labelled
 
     #Turn into an integer
     mc_beersh_voxels.segclass = pd.to_numeric(mc_beersh_voxels.segclass, downcast = 'integer')

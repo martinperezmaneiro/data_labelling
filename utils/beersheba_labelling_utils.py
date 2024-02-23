@@ -60,6 +60,7 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
         event_mapping = dio.load_dst(beersh_dir, 'Run', 'eventMap')
         map_dict = dict(zip(event_mapping.evt_number, event_mapping.nexus_evt))
         beersh_hits.event = beersh_hits.event.map(map_dict)
+        del event_mapping, map_dict
 
     beersh_hits = beersh_hits[np.isin(beersh_hits['event'], labelled_vox_events)]
 
@@ -70,6 +71,8 @@ def voxelize_beersh(beersh_dir, total_size, voxel_size, start_bin, labelled_vox 
                               for event_id, event_vox in labelled_vox.groupby('event_id')])
     else:
         binclass = np.append(binclass, [None] * len(beersh_hits.event.unique()))
+    
+    del labelled_vox, labelled_vox_events
 
     voxel_df = pd.DataFrame()
     for (event_id, event_hits), binnum in zip(beersh_hits.groupby('event'), binclass):
@@ -132,7 +135,7 @@ def relabel_outside_voxels(merged_voxels):
     '''
 
     out_df = merged_voxels[merged_voxels.beersh_ener.isnull()]
-    ins_df = merged_voxels[merged_voxels.beersh_ener.notnull() & merged_voxels.ratio.notnull()]
+    #ins_df = merged_voxels[merged_voxels.beersh_ener.notnull() & merged_voxels.ratio.notnull()]
     emp_df = merged_voxels[merged_voxels.segclass.isnull()]
 
     if out_df.empty:
@@ -148,6 +151,7 @@ def relabel_outside_voxels(merged_voxels):
                                                     'x_y', 'y_y', 'z_y',
                                                     'segclass',
                                                     'ratio']]
+        del out_df, emp_df
         combinations['distances'] = np.linalg.norm(combinations[['x_x', 'y_x', 'z_x']].values
                                               - combinations[['x_y', 'y_y', 'z_y']].values, axis=1)
         #Selection of the nearest empty voxels
@@ -157,6 +161,7 @@ def relabel_outside_voxels(merged_voxels):
             df = df[df.distances == min_dist].drop(['x_x', 'y_x', 'z_x', 'distances'], axis = 1)
             df = df.rename(columns = {'x_y':'x', 'y_y':'y', 'z_y':'z'})
             switching_voxels_df = switching_voxels_df.append(df)
+        del combinations, df
 
         switching_voxels_df = switching_voxels_df.sort_values(['x', 'y', 'z'])
         #From here, the function will be removing repeated voxels with conflicts
@@ -260,6 +265,8 @@ def merge_MC_beersh_voxels(labelled_voxels_MC, beersh_voxels, relabel = True, fi
                                                             'segclass']],
                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
                                         how = 'outer')
+    del labelled_voxels_MC, beersh_voxels, coinc_evs, null_beer_evs
+
     if fix_track_connection == 'all':
         #this adds all the MC voxels that fell outside
         merged_voxels['beersh_ener'] = merged_voxels.beersh_ener.fillna(0)
