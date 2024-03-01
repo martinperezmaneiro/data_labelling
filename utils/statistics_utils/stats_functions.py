@@ -88,7 +88,8 @@ def get_separated_segclass(segclass_counting):
                                          (separated_segclass[cloud_per_segname] > 1)].drop('cloud', axis = 1).drop_duplicates()
 
         sig_sep_seg = separated_segclass[(separated_segclass.binclass == 1) &\
-                                         (separated_segclass[cloud_per_segname] > 2)].drop('cloud', axis = 1).drop_duplicates()
+                                         (separated_segclass[cloud_per_segname] > 1) &\
+                                         (separated_segclass.elem_count > 2)].drop('cloud', axis = 1).drop_duplicates()
 
         sep_segclass = pd.concat([bkg_sep_seg, sig_sep_seg])
 
