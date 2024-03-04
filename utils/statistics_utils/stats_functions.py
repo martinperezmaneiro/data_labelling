@@ -185,7 +185,7 @@ def create_df_cloud_stats(i, file, voxel_df, track_segclass = [2, 5], blob_segcl
     interr_blob_evs = interr_blobs.dataset_id.unique()
     interr_blob_evs_rate = len(interr_blob_evs) / len(blob_counting)
     ##bad blob count
-    blob_count_false = voxel_df[(voxel_df.blob_success == False)][['dataset_id', 'binclass', 'nblob', 'blob_success']].drop_duplicates()
+    blob_count_false = voxel_df[(voxel_df.blob_success == False)][['dataset_id', 'binclass', 'nblob', 'blob_success']].drop_duplicates().dataset_id.unique()
     blob_count_false_rate = len(blob_count_false) / nevents_total
 
     events_df = pd.DataFrame([{'filenumber':i,
