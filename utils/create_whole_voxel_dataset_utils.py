@@ -28,12 +28,12 @@ def get_bins(*args, min_size = (-500, -500, 0), max_size = (500, 500, 1300), nbi
     bins = (bins_x, bins_y, bins_z)
     return bins
 
-def get_ext_flag(f):
+def get_ext_flag(f, min_size = (-500, -500, 0), max_size = (500, 500, 1300), nbins = (501, 501, 651)):
     hits = pd.read_hdf(f, 'DATASET/MCHits')
     ext1, ext2 = get_extremes(hits)
     ext_df = pd.DataFrame({'dataset_id':hits.dataset_id.unique(), 'ext1':list(ext1), 'ext2':list(ext2)})
 
-    bins = get_bins()
+    bins = get_bins(min_size = min_size, max_size = max_size, nbins = nbins)
     voxelizer = lambda x: [np.histogram(x[i], bins[i])[0].nonzero()[0][0] for i in range(len(x))]
     ext_df.ext1 = ext_df.ext1.apply(voxelizer)
     ext_df.ext2 = ext_df.ext2.apply(voxelizer)
@@ -51,14 +51,14 @@ def create_dataset_df(voxels, filenum, cols = ['dataset_id', 'x', 'y', 'z', 'ene
     df['nhits'] = df['nhits'].astype('int16')
     return df
 
-def create_dataset_file(file_dict, basedir):
+def create_dataset_file(file_dict, basedir, min_size = (-500, -500, 0), max_size = (500, 500, 1300), nbins = (501, 501, 651)):
     for name in file_dict:
         print(name)
         savedir = basedir.format(name, name.replace('/', '_'))
         for f in file_dict[name]:
             filenum = int(f.split('/')[-1].split('_')[-2])
             vox = pd.read_hdf(f, 'DATASET/MCVoxels')
-            ext_df = get_ext_flag(f)
+            ext_df = get_ext_flag(f, min_size = min_size, max_size = max_size, nbins = nbins)
             vox_ext = vox.merge(ext_df.drop('voxel', axis = 1), on = ['dataset_id', 'x', 'y', 'z'], how = 'outer').fillna(0)
             vox_ext.ext = vox_ext.ext.astype(int)
 

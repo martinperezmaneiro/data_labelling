@@ -5,6 +5,10 @@ basedir = '/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/data/pressure_topol
 savedir = '/mnt/lustre/scratch/nlsas/home/usc/ie/mpm/NEXT100/data/pressure_topology/{}/label/voxel_dataset_{}.h5'
 pressures = ['1bar', '2bar', '5bar', '13bar']
 data_type = ['0nubb', '1eroi']
+min_size = (-1000, -1000, -1000) #(-500, -500, 0)
+max_size = (1000, 1000, 1000) #(500, 500, 1300)
+nbins    = (1001, 1001, 1001) #(501, 501, 651)
+
 
 nexusfiles, labelfiles, graphfiles = {}, {}, {}
 
@@ -19,4 +23,4 @@ for dt in data_type:
         graphfiles[p + '/' + dt] = sorted(glob.glob(graphdir), key = lambda x: int(x.split('/')[-1].split('_')[-3]))
 
 
-create_dataset_file(labelfiles, savedir)
+create_dataset_file(labelfiles, savedir, min_size = min_size, max_size = max_size, nbins = nbins)
