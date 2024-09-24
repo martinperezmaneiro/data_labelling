@@ -25,31 +25,27 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
     The mchits df with a new column containing the binclass.
     '''
 
-    # To avoid labelling as signal events with the doublescape/0nubb outside the detector,
-    # we'll get just the particles that deposited any hit:
-
+    # select only those particles that actually left any hit in the active
     hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id'])
+    hits_part = hits_part[mcpart.columns].drop_duplicates()
 
-    #We use the sum on a creator proces because it is more general for different types of data
-    #Also, we added the condition that at least one particle has to be an electron
-    #because both doublescape and 0nubb have either a conv or none created electron
-    #the bkg of the doublescape won't have any electron created by conv
-    #the bkg of the 0nubb won't have any electron created by none
-    #Adding the RoI electrons this seemed more complicated than the other option
-    #class_label = hits_part.groupby('event_id').apply(lambda x: 1 if any((x.creator_proc == sig_creator) & (x.particle_name == 'e-')) else 0)
-
-    #With this selector we have:
-    #doublescape: its sig_creator is 'conv', so the events with 2 created conv particles would be
-    #signal (events with a e+e-), and for the rest (no conv, can be whatever) background
-    #0nubb: its sig creator is 'none', so the events with 2 created none particles would be signal
-    #(that is, events with 0nubb), and for the rest (208Tl, 214Bi... have just one none particle,
-    #the nuclei itself; the 1eroi have also just one none particle, the e-) background
+    # Clean particles just to have e+ and e-
+    hits_part = hits_part[np.isin(hits_part.particle_name, ['e+', 'e-'])]
+    
+    # Create a selector of signal/background
     selector = lambda x: 1 if int(sum(x == sig_creator)) == 2 else 0
-    class_label = mcpart.groupby('event_id').creator_proc.apply(selector).astype(int)
 
+    # With this selector we have:
+    # * doublescape: its signal_creator is 'conv', so the events with 2 created conv particles would be
+    #                signal (events with a e+e-), and for the rest (no conv, can be whatever) background
+    # * 0nubb: its signal_creator is 'none', so the events with 2 created none particles would be signal
+    #          (that is, events with 0nubb), and for the rest (208Tl, 214Bi... have just one none particle,
+    #          the nuclei itself; the 1eroi have also just one none particle, the e-) background
+
+    class_label = hits_part.groupby('event_id').creator_proc.apply(selector).astype(int)
     class_label.name = 'binclass'
-
     mchits_binclass  = pd.merge(mchits, class_label, on = 'event_id')
+
     return mchits_binclass
 
 def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_e = None, label_dict={'rest':1, 'track':2, 'blob':3}):
