@@ -212,11 +212,10 @@ def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th =
     return hits_clf_seg
 
 
-def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
+def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
     '''
     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
-    The bins of this histogram will take the value of the ID hits that deposit more energy within them, or those
-    marked in the small_b_mask array.
+    The bins of this histogram will take the value of the ID hits that deposit more energy within them.
     So, this function takes mainly Monte Carlo hits with a defined segmentation class and voxelizes them.
 
     i.e., in a voxel with several hits, the function will label the voxel as the kind of hit that layed more energy,
@@ -242,9 +241,6 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
         hits_id: NUMPYARRAY
     IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
 
-        small_b_mask: NUMPYARRAY
-    Mask for the blob groups of hits with very little energy, so we assure them to appear in the final voxeling
-
         bins: LIST OF ARRAYS
     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
 
@@ -269,7 +265,6 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
     unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
 
     mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías
-    small_b_hist, _ = np.histogramdd(mccoors, bins, weights = small_b_mask) #histograma con los hits de blobs pequeños
     nhits_hist,   _ = np.histogramdd(mccoors, bins) #histograma con el numero de hits en cada voxel
 
     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
@@ -282,7 +277,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
                                 weights = mcenes[hit_id_mask]) #histograma de energia por tipo de hit
         histograms.append(vox)                                 #lista de histogramas
         nonzero.append(np.array(vox.nonzero()).T)              #lista con las coordenadas no nulas
-    del mccoors, mcenes, hits_id, small_b_mask
+    del mccoors, mcenes, hits_id
 
     #Bucle recorriendo los voxeles no nulos para comparar el valor de cada histograma
 
@@ -304,15 +299,7 @@ def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
             vox_eners = np.array(vox_eners)
             assert len(vox_eners) == len(unique_hits)
 
-            # Ahora debemos escoger la etiqueta del voxel;
-            # Primero miramos si es un blob pequeño, es decir que su posición en el histograma de small_b no sea cero
-            # Si eso se cumple, se asigna a selected_id la última posición (que se corresponde con la etiqueta blob)
-            if small_b_hist[nonzero_coors] != 0:
-                selected_id = -1
-
-            # Si no, mira la posición del elemento mayor en vox_eners
-            else:
-                selected_id = vox_eners.argmax()
+            selected_id = vox_eners.argmax()
 
             mc_hit_id[nonzero_coors] = unique_hits[selected_id]   #toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío
 
@@ -371,32 +358,32 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifie
 
     return event_cut
 
-def add_small_blob_mask(labelled_hits, small_blob_th = 0.1):
-    '''
-    Takes the add_hits_labels_MC output and creates a mask that marks all the small blob hits to make sure
-    afterwards that they get representation in the voxelization.
+# def add_small_blob_mask(labelled_hits, small_blob_th = 0.1):
+#     '''
+#     Takes the add_hits_labels_MC output and creates a mask that marks all the small blob hits to make sure
+#     afterwards that they get representation in the voxelization.
 
-    Args:
-        labelled_hits: DATAFRAME
-    Output of the add_hits_label_MC function.
+#     Args:
+#         labelled_hits: DATAFRAME
+#     Output of the add_hits_label_MC function.
 
-        small_blob_th: FLOAT
-    Threshold for the energy of a group of blob hits to become marked.
+#         small_blob_th: FLOAT
+#     Threshold for the energy of a group of blob hits to become marked.
 
-    RETURNS:
-        labelled_hits: DATAFRAME
-    The same as in the input, but with a new column called small_b with the mask.
-    '''
+#     RETURNS:
+#         labelled_hits: DATAFRAME
+#     The same as in the input, but with a new column called small_b with the mask.
+#     '''
 
-    per_label_info = labelled_hits.groupby(['event_id',
-                                        'particle_id',
-                                        'segclass']).agg({'energy':[('group_ener', sum)]})
-    per_label_info.columns = per_label_info.columns.get_level_values(1)
-    per_label_info.reset_index(inplace=True)
+#     per_label_info = labelled_hits.groupby(['event_id',
+#                                         'particle_id',
+#                                         'segclass']).agg({'energy':[('group_ener', sum)]})
+#     per_label_info.columns = per_label_info.columns.get_level_values(1)
+#     per_label_info.reset_index(inplace=True)
 
-    sb_mask = ((per_label_info.group_ener < small_blob_th) & (per_label_info.segclass == 3)).values
-    per_label_info['small_b'] = sb_mask
+#     sb_mask = ((per_label_info.group_ener < small_blob_th) & (per_label_info.segclass == 3)).values
+#     per_label_info['small_b'] = sb_mask
 
-    labelled_hits = labelled_hits.merge(per_label_info, on = ['event_id', 'particle_id', 'segclass'])
+#     labelled_hits = labelled_hits.merge(per_label_info, on = ['event_id', 'particle_id', 'segclass'])
 
-    return labelled_hits
+#     return labelled_hits

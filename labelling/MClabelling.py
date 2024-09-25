@@ -3,7 +3,7 @@ import pandas as pd
 
 from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts, add_small_blob_mask
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts
 
 from utils.add_extreme_utils import add_vox_ext_label
 
@@ -74,12 +74,14 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     #Hacemos los cortes en los hits
     labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
 
-    #Hacemos la máscara de blob pequeño
-    labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
+    # Deprecated: small blob mask is now substituted by just forcing the extreme voxels to be blob voxels (both for signal, one of them for bkg)
+    # labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
 
     #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
     voxelization_df = pd.DataFrame()
 
+    # THIS WHOLE VOXELIZATION PART CAN BE SIMPLIFIED, this img thing is only needed afterwards for
+    # beersheba labelling, not needed for the regular MC voxels
     #Recorremos evento a evento el DF con los hits etiquetados para hacerle a cada uno su histograma y
     #finalmente extraer las coordenadas
     for event_id, event_hits in labelled_hits.groupby('event_id'):
@@ -89,10 +91,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
         mcenes   = np.array(event_hits['energy'])
         labels   = np.array(event_hits['segclass'])
         binclass = np.array(event_hits['binclass'])[0]
-        small_b  = np.array(event_hits['small_b'])
+        # small_b  = np.array(event_hits['small_b'])
 
-        label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b,  bins)
-        del mccoors, mcenes, labels, small_b, xhits, yhits, zhits
+        label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img, mccoors, mcenes, labels, bins)
+        del mccoors, mcenes, labels, xhits, yhits, zhits
 
         voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, nhits_hist, bins, binnum = binclass))
         del label_histo, ener_histo, ratio_histo, nhits_hist
@@ -112,5 +114,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
 
     # Add extreme information to voxels using the hits
     voxelization_df = add_vox_ext_label(labelled_hits, voxelization_df, bins)
+
+    # Make sure at least the extreme voxels have a blob label
+    voxelization_df.loc[(voxelization_df.ext == 1) & (voxelization_df.binclass == 0), 'segclass'] = 3
+    voxelization_df.loc[voxelization_df['ext'].isin([1, 2]) & (voxelization_df.binclass == 1), 'segclass'] = 3
 
     return voxelization_df, labelled_hits
