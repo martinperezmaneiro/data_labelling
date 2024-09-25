@@ -2,6 +2,7 @@ import numpy  as np
 import pandas as pd
 from .histogram_utils import *
 from .data_utils      import calculate_track_distances
+from .add_extreme_utils import add_ext_label
 
 def add_binclass(mchits, mcpart, sig_creator = 'conv'):
     '''
@@ -90,12 +91,13 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     Contains the hits information with event_id, coordinates, energy, segclass, binclass
     and hits distances of the tracks (also creator and particle to get the traces and do the bragg peak study)
     '''
-    #Unimos los df de hits y particulas, haciendo que a cada hit de mchits se le añada la información
-    #de la partícula que viene en mcpart
+
+    # Join hits and particles, so each hit has particle information
+    # Also, only work with particles that left a hit in the detector
     hits_part = pd.merge(mchits, mcpart, on = ['event_id', 'particle_id'])
-    del mchits, mcpart
-    #Agrupamos todos los hits de cada partícula de cada evento y sumamos su energía para obtener la
-    #energía depositada por cada partícula (más otra información)
+    del mcpart
+
+    # Group to have the total energy for each particle (to select main track in bkg)
     per_part_info = hits_part.groupby(['event_id',
                                        'particle_id',
                                        'particle_name',
@@ -104,63 +106,56 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     per_part_info.columns = per_part_info.columns.get_level_values(1)
     per_part_info.reset_index(inplace=True)
 
-    #Seleccionamos los eventos de señal y background
-    #Before this , I selected the signal event ids just with the creator process;
-    #Either we do this with the binclass or with creatos + electron (as the binclass function)
-    signal_event_ids      = per_part_info[per_part_info.binclass == 1].event_id.unique()
-    background_event_ids  = np.setdiff1d(per_part_info.event_id.unique(), signal_event_ids)
+    # Select signal
+    tracks_sig = per_part_info[(per_part_info.binclass == 1) &\
+                               (per_part_info.particle_name.isin(['e+', 'e-']) &\
+                                (per_part_info.creator_proc == sig_creator))]
 
-    #Seleccionamos las trazas de cada evento
-    #Para double scape es sencillo, cogemos los e+e- cuyo proceso de creación sea conv, tendremos 2 trazas/evento
-    #Para 0nubb cogemos los e- (da igual coger e+, no van a estar) cuyo proceso de creación sea none
-    tracks_sig = per_part_info[(per_part_info.event_id.isin(signal_event_ids)) &\
-                                   (per_part_info.particle_name.isin(['e+', 'e-']) &\
-                                   (per_part_info.creator_proc == sig_creator))]
+    # Select background
+    tracks_bkg = per_part_info[(per_part_info.binclass == 0) &\
+                               (per_part_info.particle_name == 'e-') &\
+                                (per_part_info.creator_proc.isin(['compt', 'phot', 'none']))]
+    del per_part_info
 
-    #Para background cogemos los electrones que fueron creados por compton, y de ellos escogemos el más energético
-    #Tendremos 1 traza/evento
-    #We added none electrons as we have now the 1eroi data with none electrons generated as background
-    tracks_bkg = per_part_info[(per_part_info.event_id.isin(background_event_ids)) &\
-                                   (per_part_info.particle_name == 'e-') &\
-                                   (per_part_info.creator_proc.isin(['compt', 'phot', 'none']))]
-    del per_part_info, signal_event_ids, background_event_ids
+    tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] # select the most energetic e-
 
-    tracks_bkg = tracks_bkg.loc[tracks_bkg.groupby('event_id').track_ener.idxmax()] #seleccionamos el más energético
+    # We add here track extreme label, and join to hits
+    track_ext = add_ext_label(mchits, tracks_sig, tracks_bkg)
+    hits_part = hits_part.merge(track_ext.drop('track_ener', axis = 1), how='outer').fillna(0)
 
-    #Unimos la información de todas las trazas y le añadimos la etiqueta track en una nueva columna segclass
+    # Join all tracks and add track label to them
     tracks_info = pd.concat([tracks_bkg, tracks_sig]).sort_values('event_id')
     tracks_info = tracks_info.assign(segclass = label_dict['track'])
     del tracks_sig, tracks_bkg
 
-    #Añadimos al df de información de hits y partículas la nueva columna de etiquetas de voxel
+    # Join to hits
     hits_part  = hits_part.reset_index()
     hits_label = hits_part.merge(tracks_info[['event_id', 'particle_id', 'track_ener', 'segclass']],
                                  how='outer', on=['event_id', 'particle_id'])
     del hits_part
 
-    #Todas las partículas que ahora en segclass no tienen valor se les adjudica la etiqueta rest
+    # Add ohter label to the leftover hits
     hits_label.segclass = hits_label.segclass.fillna(label_dict['rest'])
 
-    #Ordeno los hits en orden descendente y hago suma cumulativa de energías de hit en una columna, cumenergy
+    # Sort hits in descendent order to do cummulative sum
     hits_label = hits_label.sort_values(['event_id', 'particle_id', 'hit_id'], ascending=[True, True, False])
     hits_label = hits_label.assign(cumenergy = hits_label.groupby(['event_id', 'particle_id']).energy.cumsum())
 
-    #Creo la columna de porcentaje de energía perdida
+    # Create the % of lost energy
     hits_label = hits_label.assign(lost_ener = (hits_label.cumenergy / hits_label.track_ener).fillna(0))
 
     if delta_e is not None:
-        #Escojo los hits que de forma acumulada sumen menos de delta_e energía
+        # Choose by absolute energy loss
         blob_mask = (hits_label.cumenergy < delta_e)
 
     if delta_loss is not None:
-        #Escojo los hits según hayan perdido un porcentaje determinado de energía de su total
-        #Primero calculo la energía total de cada traza
+        # Choose by relative energy loss
         blob_mask = (hits_label.lost_ener < delta_loss)
 
     if delta_e == None and delta_loss == None:
         raise ValueError('Neither delta_e nor delta_loss has been given a value to define the blobs')
 
-    #Ahora, dentro de todos los hits, escojo los últimos hits de clase track que sumen menos de delta_e
+    # For those selected in the previous step, assign blob label
     hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
     del blob_mask
 
@@ -180,7 +175,7 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     del tracks_info, hits_label
 
     #Escojo solo la información que me interesa
-    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'ext', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
 
     return hits_label_dist
 

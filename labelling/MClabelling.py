@@ -5,6 +5,8 @@ from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
 from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts, add_small_blob_mask
 
+from utils.add_extreme_utils import add_vox_ext_label
+
 from invisible_cities.io   import dst_io as dio
 
 def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, small_blob_th = 0.1, evt_list = None):
@@ -107,5 +109,8 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     #Hacemos enteras las coord y labels
     for colname in voxelization_df.columns:
         voxelization_df[colname] = pd.to_numeric(voxelization_df[colname], downcast = 'integer')
+
+    # Add extreme information to voxels using the hits
+    voxelization_df = add_vox_ext_label(labelled_hits, voxelization_df, bins)
 
     return voxelization_df, labelled_hits
