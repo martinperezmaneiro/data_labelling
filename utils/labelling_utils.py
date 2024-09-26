@@ -211,103 +211,148 @@ def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th =
                                 delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
     return hits_clf_seg
 
+def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
+        '''
+        This function takes labelled Monte Carlo hits and voxelizes them.
 
-def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
-    '''
-    This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
-    The bins of this histogram will take the value of the ID hits that deposit more energy within them.
-    So, this function takes mainly Monte Carlo hits with a defined segmentation class and voxelizes them.
+        In a voxel with several different hits, the function will label the voxel as the kind of hit that layed more energy,
+        regardless of the number of hits. For a 8 hit voxel:
+        - Hit A kind: 3 hits with energies 2, 2, 4    ---> total = 8
+        - Hit B kind: 1 hit  with energy   6          ---> total = 6
+        - Hit C kind: 4 hits with energies 1, 1, 2, 1 ---> total = 5
+        This voxel will be labelled as kind A.
 
-    i.e., in a voxel with several hits, the function will label the voxel as the kind of hit that layed more energy,
-    regardless of the number of hits. For a 8 hit voxel:
-     - Hit A kind: 3 hits with energies 2, 2, 4    ---> total = 8
-     - Hit B kind: 1 hit  with energy   6          ---> total = 6
-     - Hit C kind: 4 hits with energies 1, 1, 2, 1 ---> total = 5
-    This voxel will be labelled as kind A.
+        Args:
+            labelled_hits: DATAFRAME
+        Output from the add_hits_labels_MC function.
 
-    The IDs of the hits may be the kind of particle, or even the segmentation classes (track, blob, other...)
-    Also, gives an histogram of the energies of the hits for each voxel, using mcimg function.
+            bins: list of arrays
+        Contains the bins for the 3 dimensions.
 
-    Args:
-        img: NUMPYARRAY
-    Frame to contain the event.
+            coords: list
+        Name of the coords in the labelled_hits DF.
 
-        mccoors: NUMPYARRAY
-    Coordinates of the particle hits. Having N hits, this sould be shaped as (N, D).
+        RETURN:
+            voxel_ener: DATAFRAME
+        '''
+        bname = ['xbin', 'ybin', 'zbin']
+        # Voxelize
+        for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1)).astype('int')
+        
+        # Get energy and nhits for each voxel
+        voxel_ener = labelled_hits.groupby(['event_id'] + bname + ['binclass']).agg(energy=('energy', 'sum'), nhits = ('energy', 'count')).reset_index()
 
-        mcenes: NUMPYARRAY
-    Energies of the particle hits. Having N hits, this should be shaped as (N,).
+        # Get energy for each voxel and segclass, and pick the most energetic segclass for each voxel
+        voxel_seg_ener = labelled_hits.groupby(['event_id'] + bname + ['segclass']).agg({'energy': 'sum'}).reset_index()
+        max_ener_seg = voxel_seg_ener.loc[voxel_seg_ener.groupby(['event_id'] + bname)['energy'].idxmax()].rename(columns = {'energy':'max_seg_ener'})
 
-        hits_id: NUMPYARRAY
-    IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
+        # Add segclass info to voxel df, compute the ratio of energy this class deposits in that voxel (just informative)
+        voxel_ener = voxel_ener.merge(max_ener_seg, how = 'left')
+        voxel_ener['ratio'] = voxel_ener['max_seg_ener'] / voxel_ener['energy']
+        voxel_ener = voxel_ener.drop('max_seg_ener', axis = 1)
+        
+        # Rename columns to be consistent with rest of the code
+        for i in range(3): voxel_ener = voxel_ener.rename(columns={bname[i]:coords[i]})
+        voxel_ener = voxel_ener.rename(columns = {'energy':'ener'})
+        return voxel_ener
 
-        bins: LIST OF ARRAYS
-    D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
+# !!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!
+# def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
+#     '''
+#     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
+#     The bins of this histogram will take the value of the ID hits that deposit more energy within them.
+#     So, this function takes mainly Monte Carlo hits with a defined segmentation class and voxelizes them.
 
-    RETURN:
-        mc_hit_id: NUMPYARRAY
-    D-dimensional histogram with the IDs for the voxels.
+#     i.e., in a voxel with several hits, the function will label the voxel as the kind of hit that layed more energy,
+#     regardless of the number of hits. For a 8 hit voxel:
+#      - Hit A kind: 3 hits with energies 2, 2, 4    ---> total = 8
+#      - Hit B kind: 1 hit  with energy   6          ---> total = 6
+#      - Hit C kind: 4 hits with energies 1, 1, 2, 1 ---> total = 5
+#     This voxel will be labelled as kind A.
 
-        mc_hit_ener: NUMPYARRAY
-    D-dimensional histogram with the energies of the voxels.
+#     The IDs of the hits may be the kind of particle, or even the segmentation classes (track, blob, other...)
+#     Also, gives an histogram of the energies of the hits for each voxel, using mcimg function.
 
-        mc_hit_portion: NUMPYARRAY
-    D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is
-    defined by its id) to the total energy, per voxel.
+#     Args:
+#         img: NUMPYARRAY
+#     Frame to contain the event.
 
-        nhits_hist: NUMPYARRAY
-    D-dimensional histogram with the number of hits for each voxel.
+#         mccoors: NUMPYARRAY
+#     Coordinates of the particle hits. Having N hits, this sould be shaped as (N, D).
 
-    '''
+#         mcenes: NUMPYARRAY
+#     Energies of the particle hits. Having N hits, this should be shaped as (N,).
 
-    mc_hit_id      = np.zeros(img.shape)   #array 3d a llenar con los identificadores
-    mc_hit_portion = np.zeros(img.shape)   #array 3d a llenar con el porcentaje de energía de la total que se lleva la partícula más importante
-    unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
+#         hits_id: NUMPYARRAY
+#     IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
 
-    mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías
-    nhits_hist,   _ = np.histogramdd(mccoors, bins) #histograma con el numero de hits en cada voxel
+#         bins: LIST OF ARRAYS
+#     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
 
-    #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
-    histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
+#     RETURN:
+#         mc_hit_id: NUMPYARRAY
+#     D-dimensional histogram with the IDs for the voxels.
 
-    for hit_id in unique_hits:
-        hit_id_mask = hits_id == hit_id                           #mascara de cada tipo de hit
-        vox, _ = np.histogramdd(mccoors[hit_id_mask],
-                                bins,
-                                weights = mcenes[hit_id_mask]) #histograma de energia por tipo de hit
-        histograms.append(vox)                                 #lista de histogramas
-        nonzero.append(np.array(vox.nonzero()).T)              #lista con las coordenadas no nulas
-    del mccoors, mcenes, hits_id
+#         mc_hit_ener: NUMPYARRAY
+#     D-dimensional histogram with the energies of the voxels.
 
-    #Bucle recorriendo los voxeles no nulos para comparar el valor de cada histograma
+#         mc_hit_portion: NUMPYARRAY
+#     D-dimensional histogram with the ratio of the energy of the most important type of particle (the type is
+#     defined by its id) to the total energy, per voxel.
 
-    for nz in nonzero: #recorre cada tipo de hit con voxeles no nulos particulares (los hits tipo 1 cayeron en ciertos voxeles, los tipo 2 en otros etc...)
-        for i in nz:   #aqui recorre cada coordenada de cada tipo de hit
-            nonzero_coors = tuple(i)
+#         nhits_hist: NUMPYARRAY
+#     D-dimensional histogram with the number of hits for each voxel.
 
-            if mc_hit_id[nonzero_coors] != 0 and mc_hit_portion[nonzero_coors] != 0:
-                continue        #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
-                                #pasamos de volver a hacerle cosas
+#     '''
 
-            #Bucle en los histogramas para ver cual tiene el valor más grande en cada voxel,
-            #revelándome así qué tipo de voxel es
+#     mc_hit_id      = np.zeros(img.shape)   #array 3d a llenar con los identificadores
+#     mc_hit_portion = np.zeros(img.shape)   #array 3d a llenar con el porcentaje de energía de la total que se lleva la partícula más importante
+#     unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
 
-            vox_eners = [] #contenedor de los valores de voxel para todos los histogramas
-            for histo in histograms:
-                vox_eners.append(histo[nonzero_coors])
+#     mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías
+#     nhits_hist,   _ = np.histogramdd(mccoors, bins) #histograma con el numero de hits en cada voxel
 
-            vox_eners = np.array(vox_eners)
-            assert len(vox_eners) == len(unique_hits)
+#     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
+#     histograms, nonzero = [], []        #lista de histogramas y de sus coordenadas no nulas
 
-            selected_id = vox_eners.argmax()
+#     for hit_id in unique_hits:
+#         hit_id_mask = hits_id == hit_id                           #mascara de cada tipo de hit
+#         vox, _ = np.histogramdd(mccoors[hit_id_mask],
+#                                 bins,
+#                                 weights = mcenes[hit_id_mask]) #histograma de energia por tipo de hit
+#         histograms.append(vox)                                 #lista de histogramas
+#         nonzero.append(np.array(vox.nonzero()).T)              #lista con las coordenadas no nulas
+#     del mccoors, mcenes, hits_id
 
-            mc_hit_id[nonzero_coors] = unique_hits[selected_id]   #toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío
+#     #Bucle recorriendo los voxeles no nulos para comparar el valor de cada histograma
 
-            max_ener   = vox_eners[selected_id]     #energía de la partícula más importante en un voxel
-            total_ener = mc_hit_ener[nonzero_coors] #la energía total contenida en ese voxel
-            mc_hit_portion[nonzero_coors] = max_ener / total_ener
+#     for nz in nonzero: #recorre cada tipo de hit con voxeles no nulos particulares (los hits tipo 1 cayeron en ciertos voxeles, los tipo 2 en otros etc...)
+#         for i in nz:   #aqui recorre cada coordenada de cada tipo de hit
+#             nonzero_coors = tuple(i)
 
-    return mc_hit_id, mc_hit_ener, mc_hit_portion, nhits_hist
+#             if mc_hit_id[nonzero_coors] != 0 and mc_hit_portion[nonzero_coors] != 0:
+#                 continue        #si cierto voxel ya ha sido llenado (es decir, si su valor no es cero)
+#                                 #pasamos de volver a hacerle cosas
+
+#             #Bucle en los histogramas para ver cual tiene el valor más grande en cada voxel,
+#             #revelándome así qué tipo de voxel es
+
+#             vox_eners = [] #contenedor de los valores de voxel para todos los histogramas
+#             for histo in histograms:
+#                 vox_eners.append(histo[nonzero_coors])
+
+#             vox_eners = np.array(vox_eners)
+#             assert len(vox_eners) == len(unique_hits)
+
+#             selected_id = vox_eners.argmax()
+
+#             mc_hit_id[nonzero_coors] = unique_hits[selected_id]   #toma dicha posición de la lista unique_hits y se la asigna a la posición correspondiente en el array vacío
+
+#             max_ener   = vox_eners[selected_id]     #energía de la partícula más importante en un voxel
+#             total_ener = mc_hit_ener[nonzero_coors] #la energía total contenida en ese voxel
+#             mc_hit_portion[nonzero_coors] = max_ener / total_ener
+
+#     return mc_hit_id, mc_hit_ener, mc_hit_portion, nhits_hist
 
 
 def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifier = 'event_id'):
