@@ -211,7 +211,7 @@ def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th =
                                 delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
     return hits_clf_seg
 
-def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
+def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 'event_id', label_name = 'segclass'):
         '''
         This function takes labelled Monte Carlo hits and voxelizes them.
 
@@ -237,14 +237,14 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
         '''
         bname = ['xbin', 'ybin', 'zbin']
         # Voxelize
-        for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1)).astype('int')
+        for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1), right = False).astype('int') #adding this to check if it matches old approach
         
         # Get energy and nhits for each voxel
-        voxel_ener = labelled_hits.groupby(['event_id'] + bname + ['binclass']).agg(energy=('energy', 'sum'), nhits = ('energy', 'count')).reset_index()
+        voxel_ener = labelled_hits.groupby([id_name] + bname + ['binclass']).agg(energy=('energy', 'sum'), nhits = ('energy', 'count')).reset_index()
 
         # Get energy for each voxel and segclass, and pick the most energetic segclass for each voxel
-        voxel_seg_ener = labelled_hits.groupby(['event_id'] + bname + ['segclass']).agg({'energy': 'sum'}).reset_index()
-        max_ener_seg = voxel_seg_ener.loc[voxel_seg_ener.groupby(['event_id'] + bname)['energy'].idxmax()].rename(columns = {'energy':'max_seg_ener'})
+        voxel_seg_ener = labelled_hits.groupby([id_name] + bname + [label_name]).agg({'energy': 'sum'}).reset_index()
+        max_ener_seg = voxel_seg_ener.loc[voxel_seg_ener.groupby([id_name] + bname)['energy'].idxmax()].rename(columns = {'energy':'max_seg_ener'})
 
         # Add segclass info to voxel df, compute the ratio of energy this class deposits in that voxel (just informative)
         voxel_ener = voxel_ener.merge(max_ener_seg, how = 'left')
@@ -254,10 +254,14 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
         # Rename columns to be consistent with rest of the code
         for i in range(3): voxel_ener = voxel_ener.rename(columns={bname[i]:coords[i]})
         voxel_ener = voxel_ener.rename(columns = {'energy':'ener'})
+        # Reorder columns
+        voxelization_df = voxelization_df[[coords] + ['ener', 'ratio'] + [label_name] + ['nhits', 'binclass'] + [id_name]]
+
         return voxel_ener
 
-# !!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!
-# def voxel_labelling_MC(img, mccoors, mcenes, hits_id, bins):
+# !!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!! Not completely, it is still used for the beersheba part to voxelize the hits from beersheba. But I think 
+# I can get rid of it in an analogous form as I did for MC. Then there is still the part of neighbour labelling that it is done using this bins, but both parts I THINK are independent
+# def voxel_labelling_MC(img, mccoors, mcenes, hits_id, small_b_mask, bins):
 #     '''
 #     This function creates a D-dimensional array that corresponds a voxelized space (we will call it histogram).
 #     The bins of this histogram will take the value of the ID hits that deposit more energy within them.
@@ -286,6 +290,9 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
 #         hits_id: NUMPYARRAY
 #     IDs for each hit. They define the kind of voxeles we will have. Having N hits, this should be shaped as (N,).
 
+#         small_b_mask: NUMPYARRAY
+#     Mask for the blob groups of hits with very little energy, so we assure them to appear in the final voxeling
+
 #         bins: LIST OF ARRAYS
 #     D-dim long list, in which each element is an array for a spatial coordinate with the desired bins.
 
@@ -310,6 +317,7 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
 #     unique_hits    = np.unique(hits_id)    #lista de identificadores de los hits (identificador puede ser tipo de particula, label, etc...)
 
 #     mc_hit_ener     = mcimg(mccoors, mcenes, bins) #histograma de energías
+#     small_b_hist, _ = np.histogramdd(mccoors, bins, weights = small_b_mask) #histograma con los hits de blobs pequeños
 #     nhits_hist,   _ = np.histogramdd(mccoors, bins) #histograma con el numero de hits en cada voxel
 
 #     #Bucle en los identificadores de los hits para hacer un histograma de energía por tipo de hit
@@ -322,7 +330,7 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
 #                                 weights = mcenes[hit_id_mask]) #histograma de energia por tipo de hit
 #         histograms.append(vox)                                 #lista de histogramas
 #         nonzero.append(np.array(vox.nonzero()).T)              #lista con las coordenadas no nulas
-#     del mccoors, mcenes, hits_id
+#     del mccoors, mcenes, hits_id, small_b_mask
 
 #     #Bucle recorriendo los voxeles no nulos para comparar el valor de cada histograma
 
@@ -343,6 +351,16 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z']):
 
 #             vox_eners = np.array(vox_eners)
 #             assert len(vox_eners) == len(unique_hits)
+
+#             # Ahora debemos escoger la etiqueta del voxel;
+#             # Primero miramos si es un blob pequeño, es decir que su posición en el histograma de small_b no sea cero
+#             # Si eso se cumple, se asigna a selected_id la última posición (que se corresponde con la etiqueta blob)
+#             if small_b_hist[nonzero_coors] != 0:
+#                 selected_id = -1
+
+#             # Si no, mira la posición del elemento mayor en vox_eners
+#             else:
+#                 selected_id = vox_eners.argmax()
 
 #             selected_id = vox_eners.argmax()
 
