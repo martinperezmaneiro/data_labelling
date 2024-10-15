@@ -255,7 +255,7 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 
         for i in range(3): voxel_ener = voxel_ener.rename(columns={bname[i]:coords[i]})
         voxel_ener = voxel_ener.rename(columns = {'energy':'ener'})
         # Reorder columns
-        voxelization_df = voxelization_df[[coords] + ['ener', 'ratio'] + [label_name] + ['nhits', 'binclass'] + [id_name]]
+        voxel_ener = voxel_ener[[coords] + ['ener', 'ratio'] + [label_name] + ['nhits', 'binclass'] + [id_name]]
 
         return voxel_ener
 
