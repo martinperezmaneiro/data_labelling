@@ -68,6 +68,7 @@ def add_vox_ext_label(labelled_hits, labelled_voxels, bins, id_name = 'event_id'
     ext_vox[coords[1]] = pd.cut(ext_vox[coords[1]], bins = bins[1], labels = False)
     ext_vox[coords[2]] = pd.cut(ext_vox[coords[2]], bins = bins[2], labels = False)
     
+    ext_vox = ext_vox.groupby([id_name] + coords).agg({'ext':'sum'}).reset_index() #if both ext are in the same voxel, give them the sum of the ext labels
     voxels_ext = labelled_voxels.merge(ext_vox, how='left').fillna(0)
     voxels_ext['ext'] = voxels_ext['ext'].astype(int)
     return voxels_ext

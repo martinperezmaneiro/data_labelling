@@ -121,8 +121,9 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     voxelization_df = add_vox_ext_label(labelled_hits, voxelization_df, bins)
 
     # Make sure at least the extreme voxels have a blob label (this replaces the small blob mask for MC true hits)
-    voxelization_df.loc[(voxelization_df.ext == 1)          & (voxelization_df.binclass == 0), 'segclass'] = 3
-    voxelization_df.loc[voxelization_df['ext'].isin([1, 2]) & (voxelization_df.binclass == 1), 'segclass'] = 3
+    # Adding 3 as the label for a voxel with both extremes
+    voxelization_df.loc[voxelization_df['ext'].isin([1, 3])    & (voxelization_df.binclass == 0), 'segclass'] = 3
+    voxelization_df.loc[voxelization_df['ext'].isin([1, 2, 3]) & (voxelization_df.binclass == 1), 'segclass'] = 3
 
     # Reorder to match previous approach
     voxelization_df['segclass'] = voxelization_df['segclass'].astype(int)
