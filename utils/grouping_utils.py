@@ -1,40 +1,62 @@
+import sys
 import numpy  as np
 import pandas as pd
 
 import networkx as nx
 import itertools
 
+from scipy.spatial import KDTree
+
+# def create_graph(df, max_distance, coords):
+#     '''
+#     Takes a dataframe and creates a graph with the coordinates as nodes, which are connected by edges 
+#     if they are separated less than certain distance.
+    
+#     Args:
+#         df: DATAFRAME
+#     Contains spatial information (at least).
+        
+#         max_distance: FLOAT
+#     Indicates the maximum distance between nodes to be connected.
+        
+#         coords: LIST OF STR
+#     Indicates the names of the df columns that have the coordinates info.
+    
+#     RETURNS: 
+#         graph: NETWORKX GRAPH
+#     Graph with the nodes and their connections.
+#     '''
+    
+#     nodes = [tuple(x) for x in df[coords].to_numpy()]
+    
+#     graph = nx.Graph()
+#     graph.add_nodes_from(nodes)
+    
+#     #Ahora hacemos los edges para contar las componentes conexas
+#     for va, vb in itertools.combinations(graph.nodes(), 2):
+#         va_arr, vb_arr = np.array(va), np.array(vb)
+#         dis = np.linalg.norm(va_arr-vb_arr)
+#         if dis <= max_distance:
+#             graph.add_edge(va, vb, distance = dis)
+#     return graph
+
+
 def create_graph(df, max_distance, coords):
     '''
-    Takes a dataframe and creates a graph with the coordinates as nodes, which are connected by edges 
-    if they are separated less than certain distance.
-    
-    Args:
-        df: DATAFRAME
-    Contains spatial information (at least).
-        
-        max_distance: FLOAT
-    Indicates the maximum distance between nodes to be connected.
-        
-        coords: LIST OF STR
-    Indicates the names of the df columns that have the coordinates info.
-    
-    RETURNS: 
-        graph: NETWORKX GRAPH
-    Graph with the nodes and their connections.
+    Creates a graph using a KDTree for efficient distance computations.
     '''
-    
     nodes = [tuple(x) for x in df[coords].to_numpy()]
-    
+
     graph = nx.Graph()
     graph.add_nodes_from(nodes)
     
-    #Ahora hacemos los edges para contar las componentes conexas
-    for va, vb in itertools.combinations(graph.nodes(), 2):
-        va_arr, vb_arr = np.array(va), np.array(vb)
-        dis = np.linalg.norm(va_arr-vb_arr)
-        if dis <= max_distance:
-            graph.add_edge(va, vb, distance = dis)
+    # Use KDTree for fast neighbor search
+    kdtree = KDTree(nodes)
+    pairs = kdtree.query_pairs(r=max_distance + sys.float_info.epsilon) # add epsilon to include the max_distance value itself
+    
+    # Add edges for nodes within max_distance
+    for i, j in pairs:
+        graph.add_edge(nodes[i], nodes[j])
     return graph
 
 
@@ -350,7 +372,7 @@ def label_event_elements(labelled_voxels,
                          identifyer = 'dataset_id', 
                          ene_label = 'ener', 
                          seg_label = 'segclass',
-                         beersh_dict =  {1:1, 2:2, 3:3, 4:1, 5:2, 6:3, 7:7}, 
+                         seglabel_dict =  {0:0, 1:1, 2:2, 3:3, 4:1, 5:2, 6:3, 7:7}, 
                          blob_class = [3, 6]):
     '''
     The function performs the element (by segclass) and cloud labelling for a bunch of events.
@@ -401,8 +423,8 @@ def label_event_elements(labelled_voxels,
     #If we have a correspondance dictionary, we create a new column that renames the neighbour segclass as
     #the original segclass, and change the segclass label to the name of this new column. At the end we can delete
     #it if we want
-    if beersh_dict != None:
-        labelled_voxels = labelled_voxels.assign(group_segclass = labelled_voxels[seg_label].map(beersh_dict))
+    if seglabel_dict != None:
+        labelled_voxels = labelled_voxels.assign(group_segclass = labelled_voxels[seg_label].map(seglabel_dict))
         seg_label = 'group_segclass'
         
     output_df = pd.DataFrame()
@@ -418,7 +440,7 @@ def label_event_elements(labelled_voxels,
                                            identifyer = identifyer, 
                                            seg_label = seg_label)
     #We drop this auxiliary column
-    if beersh_dict != None:
+    if seglabel_dict != None:
         output_df = output_df.drop(seg_label, axis = 1)
         
     return output_df
