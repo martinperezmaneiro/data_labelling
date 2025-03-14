@@ -3,13 +3,13 @@ import pandas as pd
 
 from utils.data_utils      import histog_to_coord
 from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts, add_small_blob_mask
 
 from utils.add_extreme_utils import add_vox_ext_label
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, small_blob_th = 0.1, evt_list = None):
+def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, evt_list = None):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling.
@@ -40,14 +40,15 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
 
-        small_blob_th: FLOAT
-    Threshold for the energy of a group of blob hits to become marked as small.
+    #     small_blob_th: FLOAT
+    # Threshold for the energy of a group of blob hits to become marked as small.
 
     RETURNS:
         voxelization_df: DATAFRAME
     It contains the positions, energies and labels for each voxel of each event in a single file.
 
     '''
+    # PUEDO CREAR LOS BINES DE FORMA MÁS SENCILLA ahora que no tengo que crear el binado este...
     #Creo el frame del detector y obtengo sus bins
     img  = container_creator(total_size, voxel_size)
     bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
@@ -73,6 +74,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
 
     #Hacemos los cortes en los hits
     labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
+
+    # Small blob mask is a source of differences between old and new approach, but nothing to do with the problem with training and so on
+    # Might be recovered sometime... but not need right now to do it I think
+    # labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
 
     # !!!!!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!!
     # Deprecated: small blob mask is now substituted by just forcing the extreme voxels to be blob voxels (both for signal, one of them for bkg)

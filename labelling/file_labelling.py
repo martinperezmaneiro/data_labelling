@@ -6,24 +6,23 @@ import os
 from invisible_cities.io          import dst_io as dio
 
 from labelling.MClabelling        import labelling_MC
-from labelling.beershebalabelling import labelling_beersheba
+from labelling.beershebalabelling import labelling_reco
 
 def label_file(directory,
                total_size,
                voxel_size,
                start_bin,
-               label_neighbours_function,
                sig_creator = 'conv',
                blob_ener_loss_th = None,
                blob_ener_th = None,
-               simple = True,
-               relabel = True,
-               fix_track_connection = False,
+               reco_group = 'RECO',
+               reco_table = 'Events',
+               reco_columns = ['event', 'X', 'Y', 'Z', 'Ec'],
                mc_label = True,
-               beersh_label = True,
+               reco_label = True,
                Rmax = np.nan,
-               small_blob_th = 0.1, 
-               evt_list = None):
+               evt_list = None, 
+               ghost_label = 0):
     '''
     Function that performs the whole beersheba labelling. Starting from the MC hits, they are labelled in three
     classes (rest, track, blob) and voxelized with the labelling_MC function. Then, with the labelling_beersheba
@@ -96,13 +95,15 @@ def label_file(directory,
     If the conditions are satisfied (mc_label = True), this contains the labelled MC hits for each event in the
     file. We will use them to plot nicer images.
 
-        labelled_beersheba: DATAFRAME
+        labelled_reco_voxels: DATAFRAME
     If the conditions are satisfied (mc_label and segclas = True), this contains the labelled beersheba voxels
     for each event in the file.
     '''
 
     #Just in case mc_label and beersh_label are False, to return something
-    labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    labelled_MC_voxels, labelled_MC_hits, labelled_reco_voxels = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # AQUI HACER LA ESCOLLICION ENTRE UN TOTAL/VOXEL/START PUESTO POR MI, O DADO POR EL DATABASE
 
     if mc_label:
         labelled_MC_voxels, labelled_MC_hits = labelling_MC(directory,
@@ -113,33 +114,31 @@ def label_file(directory,
                                                             blob_ener_loss_th = blob_ener_loss_th,
                                                             blob_ener_th = blob_ener_th,
                                                             Rmax = Rmax,
-                                                            small_blob_th = small_blob_th, 
                                                             evt_list = evt_list)
     else:
         print('No MC labelling has been performed')
 
-    if mc_label and beersh_label:
-        labelled_beersheba = labelling_beersheba(directory,
-                                                 total_size,
-                                                 voxel_size,
-                                                 start_bin,
-                                                 labelled_MC_voxels,
-                                                 label_neighbours_function,
-                                                 simple = simple,
-                                                 relabel = relabel,
-                                                 fix_track_connection = fix_track_connection,
-                                                 Rmax = Rmax)
+    if mc_label and reco_label:
+        labelled_reco_voxels = labelling_reco(directory,
+                                              total_size, 
+                                              voxel_size, 
+                                              start_bin, 
+                                              labelled_MC_voxels, 
+                                              group = reco_group, 
+                                              table = reco_table, 
+                                              column_names = reco_columns, 
+                                              ghost_label = ghost_label)
 
         #Rename to match the names in the next_sparseconvnet functions
-        labelled_beersheba = labelled_beersheba.rename(columns={'x': 'xbin',
-                                                                'y': 'ybin',
-                                                                'z': 'zbin',
-                                                                'beersh_ener': 'energy',
-                                                                'ener': 'MC_ener'})
+        labelled_reco_voxels = labelled_reco_voxels.rename(columns={'x': 'xbin',
+                                                                    'y': 'ybin',
+                                                                    'z': 'zbin',
+                                                                    'reco_ener': 'energy'})
+                                                                    # 'ener': 'MC_ener'})
     else:
         print('No beersheba labelling has been performed')
 
-    return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba
+    return labelled_MC_voxels, labelled_MC_hits, labelled_reco_voxels
 
 
 def create_final_dataframes(label_file_dfs,
@@ -152,9 +151,9 @@ def create_final_dataframes(label_file_dfs,
                             Rmax = np.nan,
                             blob_ener_loss_th = None,
                             blob_ener_th = None,
-                            small_blob_th = None,
+                            # small_blob_th = None,
                             max_distance = None,
-                            fix_track_connection = None,
+                            # fix_track_connection = None,
                             add_isaura_info = False):
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
@@ -199,16 +198,16 @@ def create_final_dataframes(label_file_dfs,
         blob_ener_th: FLOAT
     Threshold for the last hits of a track to become blob regarding a fixed value of energy.
 
-        small_blob_th: FLOAT
-    Threshold for the energy of a group of blob hits to be marked as a small blob.
+    #     small_blob_th: FLOAT
+    # Threshold for the energy of a group of blob hits to be marked as a small blob.
 
         max_distance: FLOAT
     Indicates the maximum distance between nodes to be connected for element counting.
 
-        fix_track_connection: STR
-    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
-    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
-    Otherwise this won't be done.
+    #     fix_track_connection: STR
+    # Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
+    # If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
+    # Otherwise this won't be done.
 
         add_isaura_info: BOOL
     If True, it means that we have the isaura files in an analogue path to the beersheba file we are
@@ -302,13 +301,13 @@ def create_final_dataframes(label_file_dfs,
                           'Rmax'    : Rmax,
                           'loss_th' : blob_ener_loss_th,
                           'ener_th' : blob_ener_th,
-                          'sb_th'   : small_blob_th,
+                        #   'sb_th'   : small_blob_th,
                           'max_dis' : max_distance
                           }).to_frame().T
 
     #We add this apart bc otherwise all the elements in the df change to object
     #type, and then when writing on a file throws an error
-    binsInfo['fix_conn'] = fix_track_connection
+    # binsInfo['fix_conn'] = fix_track_connection
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo
 

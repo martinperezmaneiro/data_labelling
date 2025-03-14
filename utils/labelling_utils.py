@@ -211,7 +211,7 @@ def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th =
                                 delta_loss = blob_ener_loss_th, delta_e = blob_ener_th)
     return hits_clf_seg
 
-def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 'event_id', label_name = 'segclass'):
+def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 'event_id', ene_name = 'energy', label_name = ['segclass']):
         '''
         This function takes labelled Monte Carlo hits and voxelizes them.
 
@@ -240,11 +240,11 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 
         for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1), right = False).astype('int') #adding this to check if it matches old approach
         
         # Get energy and nhits for each voxel
-        voxel_ener = labelled_hits.groupby([id_name] + bname + ['binclass']).agg(energy=('energy', 'sum'), nhits = ('energy', 'count')).reset_index()
+        voxel_ener = labelled_hits.groupby([id_name] + bname + ['binclass']).agg(energy=(ene_name, 'sum'), nhits = (ene_name, 'count')).reset_index()
 
         # Get energy for each voxel and segclass, and pick the most energetic segclass for each voxel
-        voxel_seg_ener = labelled_hits.groupby([id_name] + bname + [label_name]).agg({'energy': 'sum'}).reset_index()
-        max_ener_seg = voxel_seg_ener.loc[voxel_seg_ener.groupby([id_name] + bname)['energy'].idxmax()].rename(columns = {'energy':'max_seg_ener'})
+        voxel_seg_ener = labelled_hits.groupby([id_name] + bname + label_name).agg({ene_name: 'sum'}).reset_index()
+        max_ener_seg = voxel_seg_ener.loc[voxel_seg_ener.groupby([id_name] + bname)[ene_name].idxmax()].rename(columns = {ene_name:'max_seg_ener'})
 
         # Add segclass info to voxel df, compute the ratio of energy this class deposits in that voxel (just informative)
         voxel_ener = voxel_ener.merge(max_ener_seg, how = 'left')
@@ -255,7 +255,7 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 
         for i in range(3): voxel_ener = voxel_ener.rename(columns={bname[i]:coords[i]})
         voxel_ener = voxel_ener.rename(columns = {'energy':'ener'})
         # Reorder columns
-        voxel_ener = voxel_ener[coords + ['ener', 'ratio'] + [label_name] + ['nhits', 'binclass'] + [id_name]]
+        voxel_ener = voxel_ener[coords + ['ener', 'ratio'] + label_name + ['nhits', 'binclass'] + [id_name]]
 
         return voxel_ener
 
@@ -421,32 +421,32 @@ def hit_data_cuts(hits, bins, Rmax = np.nan, coords = ['x', 'y', 'z'], identifie
 
     return event_cut
 
-# def add_small_blob_mask(labelled_hits, small_blob_th = 0.1):
-#     '''
-#     Takes the add_hits_labels_MC output and creates a mask that marks all the small blob hits to make sure
-#     afterwards that they get representation in the voxelization.
+def add_small_blob_mask(labelled_hits, small_blob_th = 0.1):
+    '''
+    Takes the add_hits_labels_MC output and creates a mask that marks all the small blob hits to make sure
+    afterwards that they get representation in the voxelization.
 
-#     Args:
-#         labelled_hits: DATAFRAME
-#     Output of the add_hits_label_MC function.
+    Args:
+        labelled_hits: DATAFRAME
+    Output of the add_hits_label_MC function.
 
-#         small_blob_th: FLOAT
-#     Threshold for the energy of a group of blob hits to become marked.
+        small_blob_th: FLOAT
+    Threshold for the energy of a group of blob hits to become marked.
 
-#     RETURNS:
-#         labelled_hits: DATAFRAME
-#     The same as in the input, but with a new column called small_b with the mask.
-#     '''
+    RETURNS:
+        labelled_hits: DATAFRAME
+    The same as in the input, but with a new column called small_b with the mask.
+    '''
 
-#     per_label_info = labelled_hits.groupby(['event_id',
-#                                         'particle_id',
-#                                         'segclass']).agg({'energy':[('group_ener', sum)]})
-#     per_label_info.columns = per_label_info.columns.get_level_values(1)
-#     per_label_info.reset_index(inplace=True)
+    per_label_info = labelled_hits.groupby(['event_id',
+                                        'particle_id',
+                                        'segclass']).agg({'energy':[('group_ener', sum)]})
+    per_label_info.columns = per_label_info.columns.get_level_values(1)
+    per_label_info.reset_index(inplace=True)
 
-#     sb_mask = ((per_label_info.group_ener < small_blob_th) & (per_label_info.segclass == 3)).values
-#     per_label_info['small_b'] = sb_mask
+    sb_mask = ((per_label_info.group_ener < small_blob_th) & (per_label_info.segclass == 3)).values
+    per_label_info['small_b'] = sb_mask
 
-#     labelled_hits = labelled_hits.merge(per_label_info, on = ['event_id', 'particle_id', 'segclass'])
+    labelled_hits = labelled_hits.merge(per_label_info, on = ['event_id', 'particle_id', 'segclass'])
 
-#     return labelled_hits
+    return labelled_hits
