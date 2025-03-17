@@ -7,7 +7,7 @@ from utils.beersheba_labelling_utils import voxelize_reco, label_reco_event
 
 #label_neighbours_ordered because it would be entered as a function imput
 
-def labelling_reco(reco_dir, total_size, voxel_size, start_bin, labelled_MC_voxels, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
+def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
     '''
     Takes the reco file, voxelizes its hits and labels them with the help of the labelled MC voxels,
     the output of the labelling_MC function, depending on the chosen neighbour labelling method.
@@ -16,14 +16,8 @@ def labelling_reco(reco_dir, total_size, voxel_size, start_bin, labelled_MC_voxe
         reco_dir: STR
     Directory of the reco file.
 
-        total_size: TUPLE
-    Contains the max size of the detector.
-
-        voxel_size: TUPLE
-    Contains the voxel size of the detector for each coordinate.
-
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
+        bins: LIST
+    Contains the binning in the 3 dimensions.
 
         labelled_MC_voxels: DATAFRAME
     Contains the MC data labelled voxels that will be the base of the labelling.
@@ -48,7 +42,7 @@ def labelling_reco(reco_dir, total_size, voxel_size, start_bin, labelled_MC_voxe
     # nlabel_dict = assign_nlabels()
 
     #reco hits voxelization
-    reco_voxels = voxelize_reco(reco_dir, total_size, voxel_size, start_bin, labelled_vox = labelled_MC_voxels, group = group, table = table, column_names = column_names)
+    reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, group = group, table = table, column_names = column_names)
 
     # !!!!!!!!!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!!!!!!!!
     # #Joining of the MC and reco voxels, and discrepancies correction

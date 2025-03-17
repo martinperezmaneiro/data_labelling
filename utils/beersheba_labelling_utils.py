@@ -14,7 +14,7 @@ from invisible_cities.io   import dst_io as dio
 ### CAMBIAR NOMRBE A RECO_LABELLING_UTILS, Y EN TODO LO DEMAS
 #############################################################
 
-def voxelize_reco(file, total_size, voxel_size, start_bin, labelled_vox = pd.DataFrame(), group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
+def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
     '''
     Voxelizes any kind of reconstructed hits (sophronia, beersheba). In addition, you can already include the binary classification
     information of each event (taken from the labelled MC voxels).
@@ -23,14 +23,8 @@ def voxelize_reco(file, total_size, voxel_size, start_bin, labelled_vox = pd.Dat
     Contains the directory of a file with reconstructed events (hits: x, y, z, E). It usually will also contain the MC info
     needed in the MC labelling.
 
-        total_size: TUPLE
-    Contains the max size of the detector.
-
-        voxel_size: TUPLE
-    Contains the voxel size of the detector for each coordinate.
-
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
+        bins: LIST
+    Contains the binning in the 3 dimensions.
 
         labelled_vox: DATAFRAME
     Contains the labelled MC information, output of the labelling_MC function.
@@ -44,8 +38,8 @@ def voxelize_reco(file, total_size, voxel_size, start_bin, labelled_vox = pd.Dat
     id_name, coords, ene_name, label_name = column_names[0], column_names[1:4], column_names[4], []
     reco_hits = dio.load_dst(file, group, table)
 
-    img  = container_creator(total_size, voxel_size)
-    bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
+    # img  = container_creator(total_size, voxel_size)
+    # bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
 
     #reco_hits = hit_data_cuts(reco_hits, detector_bins, Rmax = Rmax, coords = ['X', 'Y', 'Z'], identifier = 'event')
     #I perform the cut on beersheba data depending on the events that were cut

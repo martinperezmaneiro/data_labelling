@@ -9,7 +9,7 @@ from utils.add_extreme_utils import add_vox_ext_label
 
 from invisible_cities.io   import dst_io as dio
 
-def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, evt_list = None):
+def labelling_MC(directory, bins, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None, Rmax = np.nan, evt_list = None):
     '''
     Performs hit labelling (binclass and segclass), voxelization of the hits (gives us the energy
     per voxel, adding up all the hits that fall inside a voxel) and voxel segclass labelling.
@@ -18,14 +18,8 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
         directory: STR
     Contains the directory of a file with several events with Monte Carlo information.
 
-        total_size: TUPLE
-    Contains the max size of the detector.
-
-        voxel_size: TUPLE
-    Contains the voxel size of the detector for each coordinate.
-
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
+        bins: LIST
+    Contains the binning in the 3 dimensions.
 
         sig_creator: STR
     If 'conv', signal will be the double scape data.
@@ -48,10 +42,10 @@ def labelling_MC(directory, total_size, voxel_size, start_bin, sig_creator = 'co
     It contains the positions, energies and labels for each voxel of each event in a single file.
 
     '''
-    # PUEDO CREAR LOS BINES DE FORMA MÁS SENCILLA ahora que no tengo que crear el binado este...
-    #Creo el frame del detector y obtengo sus bins
-    img  = container_creator(total_size, voxel_size)
-    bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
+    # # PUEDO CREAR LOS BINES DE FORMA MÁS SENCILLA ahora que no tengo que crear el binado este...
+    # #Creo el frame del detector y obtengo sus bins
+    # img  = container_creator(total_size, voxel_size)
+    # bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
 
     #Obtenemos la información de partíuclas y hits de un fichero en concreto
     mcpart = dio.load_dst(directory, 'MC', 'particles')

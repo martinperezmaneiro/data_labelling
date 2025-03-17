@@ -9,9 +9,7 @@ from labelling.MClabelling        import labelling_MC
 from labelling.beershebalabelling import labelling_reco
 
 def label_file(directory,
-               total_size,
-               voxel_size,
-               start_bin,
+               bins,
                sig_creator = 'conv',
                blob_ener_loss_th = None,
                blob_ener_th = None,
@@ -36,14 +34,8 @@ def label_file(directory,
         directory: STR
     Contains the directory of a file with several events with Monte Carlo and beersheba hits information.
 
-        total_size: TUPLE
-    Contains the max size of the detector.
-
-        voxel_size: TUPLE
-    Contains the voxel size of the detector for each coordinate.
-
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
+        bins: LIST
+    Contains the binning in the 3 dimensions.
 
         label_neighbours_function: FUNCTION
     Selected function to perform the neighbour labelling (so I can easily change the method)
@@ -107,9 +99,7 @@ def label_file(directory,
 
     if mc_label:
         labelled_MC_voxels, labelled_MC_hits = labelling_MC(directory,
-                                                            total_size,
-                                                            voxel_size,
-                                                            start_bin,
+                                                            bins,
                                                             sig_creator = sig_creator,
                                                             blob_ener_loss_th = blob_ener_loss_th,
                                                             blob_ener_th = blob_ener_th,
@@ -120,9 +110,7 @@ def label_file(directory,
 
     if mc_label and reco_label:
         labelled_reco_voxels = labelling_reco(directory,
-                                              total_size, 
-                                              voxel_size, 
-                                              start_bin, 
+                                              bins, 
                                               labelled_MC_voxels, 
                                               group = reco_group, 
                                               table = reco_table, 
@@ -145,9 +133,9 @@ def create_final_dataframes(label_file_dfs,
                             start_id,
                             directory,
                             destination_directory,
-                            total_size,
-                            voxel_size,
-                            start_bin,
+                            bin_info,
+                            detector_db = 'next100',
+                            binning = 'regular',
                             Rmax = np.nan,
                             blob_ener_loss_th = None,
                             blob_ener_th = None,
@@ -179,14 +167,15 @@ def create_final_dataframes(label_file_dfs,
     the neural network, we will try to get the minimum vaulable information, and so we can keep track and link
     the big file with a file that contains more labelling information.
 
-        total_size: TUPLE
-    Contains the max size of the detector.
+        bin_info: DICT
+    Contains the info of the bins.
 
-        voxel_size: TUPLE
-    Contains the voxel size of the detector for each coordinate.
+        detector_db: STR
+    Name of the detector database used for the binning (in the case of 'sipm' binning)
 
-        start_bin: TUPLE
-    Contains the first voxel position for each coordinate.
+        binning: STR
+    Binning type. Use 'regular' for directly use the specified bin values, use 'sipm' to assign a sensor based
+    voxelization for (x, y).
 
         Rmax: FLOAT
     Value for the fiducial cut.
@@ -278,12 +267,12 @@ def create_final_dataframes(label_file_dfs,
         else:
             isauraInfo = pd.DataFrame()
 
-    min_x, min_y, min_z       = start_bin[0], start_bin[1], start_bin[2]
-    total_x, total_y, total_z = total_size[0], total_size[1], total_size[2]
-    max_x, max_y, max_z       = min_x + total_x, min_y + total_y, min_z + total_z
-    size_x, size_y, size_z    = voxel_size[0], voxel_size[1], voxel_size[2]
-    nbins_x, nbins_y, nbins_z = [(total + voxel) / voxel for total, voxel in zip(total_size, voxel_size)]
-    binsInfo = pd.Series({'min_x'   : min_x,
+    min_x, min_y, min_z       = bin_info['min']
+    total_x, total_y, total_z = bin_info['total']
+    max_x, max_y, max_z       = bin_info['max']
+    size_x, size_y, size_z    = bin_info['size']
+    nbins_x, nbins_y, nbins_z = bin_info['nbins']
+    binsInfo = pd.DataFrame([{'min_x'   : min_x,
                           'total_x' : total_x,
                           'size_x'  : size_x,
                           'max_x'   : max_x,
@@ -298,12 +287,15 @@ def create_final_dataframes(label_file_dfs,
                           'size_z'  : size_z,
                           'max_z'   : max_z,
                           'nbins_z' : nbins_z,
+                          'detector_db' : detector_db,
+                          'binning' : binning,
                           'Rmax'    : Rmax,
-                          'loss_th' : blob_ener_loss_th,
-                          'ener_th' : blob_ener_th,
+                          'loss_th' : 'None' if blob_ener_loss_th == None else blob_ener_loss_th,
+                          'ener_th' : 'None' if blob_ener_th == None else blob_ener_th, # to fix that NoneType has no length
                         #   'sb_th'   : small_blob_th,
-                          'max_dis' : max_distance
-                          }).to_frame().T
+                          'max_dis' : 'None' if max_distance == None else max_distance
+                          }]).infer_objects() #solves the problem of mixing str with numbers in a df to write it using IC functions
+    print(binsInfo.to_records().dtype)
 
     #We add this apart bc otherwise all the elements in the df change to object
     #type, and then when writing on a file throws an error
