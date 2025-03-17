@@ -4,9 +4,9 @@ import tables as tb
 import sys
 from collections import defaultdict
 
-from utils.histogram_utils import bin_creator, container_creator, mcimg
-from utils.data_utils      import histog_to_coord
-from utils.labelling_utils import voxel_labelling_MC, hit_data_cuts
+# from utils.histogram_utils import bin_creator, container_creator, mcimg
+# from utils.data_utils      import histog_to_coord
+from utils.labelling_utils import voxel_labelling_MC #, hit_data_cuts
 
 from invisible_cities.io   import dst_io as dio
 

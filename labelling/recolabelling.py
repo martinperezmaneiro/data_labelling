@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # from utils.histogram_utils           import bin_creator, container_creator
-from utils.beersheba_labelling_utils import voxelize_reco, label_reco_event
+from utils.reco_labelling_utils import voxelize_reco, label_reco_event
 # from utils.beersheba_labelling_utils import assign_nlabels, merge_mc_reco_voxels
 
 #label_neighbours_ordered because it would be entered as a function imput

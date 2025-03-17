@@ -1,7 +1,7 @@
 import numpy as np
 
 from labelling.file_labelling               import create_final_dataframes, label_file
-from utils.beersheba_labelling_utils        import label_neighbours_ordered
+from utils.reco_labelling_utils             import label_neighbours_ordered
 from utils.grouping_utils                   import label_event_elements
 from utils.statistics_utils.stats_functions import get_ev_list_stats
 

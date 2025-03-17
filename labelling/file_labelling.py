@@ -6,7 +6,7 @@ import os
 from invisible_cities.io          import dst_io as dio
 
 from labelling.MClabelling        import labelling_MC
-from labelling.beershebalabelling import labelling_reco
+from labelling.recolabelling      import labelling_reco
 
 def label_file(directory,
                bins,
