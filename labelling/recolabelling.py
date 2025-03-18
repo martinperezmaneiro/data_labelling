@@ -90,8 +90,8 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = '
     labelled_reco_voxels.segclass = pd.to_numeric(labelled_reco_voxels.segclass, downcast = 'integer')
 
     # Add ext label to reco voxels
-    labelled_reco_voxels = labelled_reco_voxels.merge(labelled_MC_voxels[['x', 'y', 'z', 'ext', 'event_id']], on = ['x', 'y', 'z', 'event_id'], how='left')
-    labelled_reco_voxels['ext'] = labelled_reco_voxels['ext'].fillna(0).astype(int)
+    labelled_reco_voxels = labelled_reco_voxels.merge(labelled_MC_voxels[['x', 'y', 'z', 'extlabel', 'event_id']], on = ['x', 'y', 'z', 'event_id'], how='left')
+    labelled_reco_voxels['extlabel'] = labelled_reco_voxels['extlabel'].fillna(0).astype(int)
 
     # Add decolabel to reco voxels
     mc_label_voxels_ = labelled_MC_voxels[['x', 'y', 'z', 'event_id']].copy()

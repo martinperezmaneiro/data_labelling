@@ -175,7 +175,7 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     del tracks_info, hits_label
 
     #Escojo solo la información que me interesa
-    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'ext', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'extlabel', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
 
     return hits_label_dist
 

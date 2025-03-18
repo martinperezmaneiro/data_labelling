@@ -322,7 +322,7 @@ def label_reco_event(mc_ev, reco_ev, neighbor_shifts, ghost_label = 0):
 #                                                             'ratio',
 #                                                             'binclass',
 #                                                             'segclass', 
-#                                                             'ext']],
+#                                                             'extlabel']],
 #                                         on = ['event_id', 'x', 'y', 'z', 'binclass'],
 #                                         how = 'outer')
 #     del labelled_voxels_MC, beersh_voxels, coinc_evs, null_beer_evs

@@ -37,12 +37,12 @@ def get_ext_flag(f, min_size = (-500, -500, 0), max_size = (500, 500, 1300), nbi
     voxelizer = lambda x: [np.histogram(x[i], bins[i])[0].nonzero()[0][0] for i in range(len(x))]
     ext_df.ext1 = ext_df.ext1.apply(voxelizer)
     ext_df.ext2 = ext_df.ext2.apply(voxelizer)
-    ext_df = pd.melt(ext_df, id_vars='dataset_id', value_vars = ['ext1', 'ext2'], var_name = 'ext', value_name='voxel')#.sorted(['dataset_id'])
+    ext_df = pd.melt(ext_df, id_vars='dataset_id', value_vars = ['ext1', 'ext2'], var_name = 'extlabel', value_name='voxel')#.sorted(['dataset_id'])
     ext_df[['x', 'y', 'z']] = ext_df.voxel.apply(pd.Series)
-    ext_df.ext = ext_df.ext.apply(lambda x: int(x[-1]) if type(x) == str else int(x))
+    ext_df['extlabel'] = ext_df['extlabel'].apply(lambda x: int(x[-1]) if type(x) == str else int(x))
     return ext_df
 
-def create_dataset_df(voxels, filenum, cols = ['dataset_id', 'x', 'y', 'z', 'ener', 'binclass', 'segclass', 'cloud', 'nhits', 'ext'], rename = {'dataset_id':'event', 'ener':'E', 'cloud':'track_id'}):
+def create_dataset_df(voxels, filenum, cols = ['dataset_id', 'x', 'y', 'z', 'ener', 'binclass', 'segclass', 'cloud', 'nhits', 'extlabel'], rename = {'dataset_id':'event', 'ener':'E', 'cloud':'track_id'}):
     df = voxels[cols].rename(columns = rename)
     df.insert(0, 'file_id', filenum)
     df['track_id'] = df['track_id'].apply(lambda x: int(x.split('_')[-1]))
@@ -60,7 +60,7 @@ def create_dataset_file(file_dict, basedir, min_size = (-500, -500, 0), max_size
             vox = pd.read_hdf(f, 'DATASET/MCVoxels')
             ext_df = get_ext_flag(f, min_size = min_size, max_size = max_size, nbins = nbins)
             vox_ext = vox.merge(ext_df.drop('voxel', axis = 1), on = ['dataset_id', 'x', 'y', 'z'], how = 'outer').fillna(0)
-            vox_ext.ext = vox_ext.ext.astype(int)
+            vox_ext['extlabel'] = vox_ext['extlabel'].astype(int)
 
             df = create_dataset_df(vox_ext, filenum)
             df.to_hdf(savedir, 'voxels', append = True)
