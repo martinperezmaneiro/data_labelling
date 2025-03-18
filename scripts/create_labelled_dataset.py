@@ -19,7 +19,6 @@ It takes a CONFIG FILE with the following information:
  - min_pos               - tuple with the  max position of the hits for each coordinate (in mm)
  - voxel_size            - tuple with the size of the voxels for each coordinate (in mm)
 
-#  - label_neighbours_name - string with the name of the neighbour labelling method
  - data_type             - string with the kind of data to label ('doublescape' for double scape, '0nubb' for neutrinoless double beta events)
  - city                  - name of the city to label (after MC); now is adapted for 'beersheba' or 'sophronia'
 
@@ -27,16 +26,10 @@ It takes a CONFIG FILE with the following information:
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
 
-#  - simple                - bool that indicates a way of voxelization for the reco hits (not very relevant, for now always True)
-#  - relabel               - bool that indicates if the residual MC voxels are reassigned to an existent reco voxel
-#  - fix_track_connection  - string that indicates if the residual MC track voxels are included as a 0 energy voxel to avoid track interruption ('track' for only
-#                            MC track voxels, 'all' for all the voxels; otherwise this won't be done.)
-
  - mc_label              - bool that indicates if the process does the labelling to the MC data
  - reco_label            - bool that indicates if the process does the labelling to the Reco data, requires mc_label True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
  - ghost_label           - value for the voxels that cannot be assigned to any of the segmentation classes (they come from spureous hits)
-#  - small_blob_th         - energy threshold for the blob hits to be marked as small blobs, so the voxelization always represents them
  - max_distance          - value of the maximum distance between voxels to perform the group counting algorythm, usually sqrt(3); if None, grouping is not performed
  - add_isaura_info       - bool that indicates if we want to add the isaura tracks info to the file; we need to have the isaura
                            files in an analogue directory as the reco files_in (that just changes the name of the cities in it)
@@ -59,12 +52,7 @@ from labelling.file_labelling import label_file, create_final_dataframes
 from utils.grouping_utils     import label_event_elements
 from utils.bin_utils          import bins_creator_sipm, bins_creator_regular, create_bins
 
-#We import the different functions to label the neighbours and create a dictionary with their keywords
-#For now we are only using one, but this is made just in case we want to add more
 
-# from utils.beersheba_labelling_utils import label_neighbours_ordered
-
-# neighbours_functions_mapping = {'ordered':label_neighbours_ordered}
 data_type_mapping = {'doublescape':'conv', '0nubb':'none'}
 column_name_dict = {'sophronia':['event', 'X', 'Y', 'Z', 'Ec'], 'beersheba':['event', 'X', 'Y', 'Z', 'E']}
 group_name_dict = {'sophronia':'RECO', 'beersheba':'DECO'}
@@ -101,31 +89,29 @@ if __name__ == "__main__":
         city_name = config.city
         label_file_dfs = label_file(f,
                                     bins,
-                                    sig_creator = data_type_mapping[config.data_type],
+                                    sig_creator       = data_type_mapping[config.data_type],
                                     blob_ener_loss_th = config.blob_ener_loss_th,
-                                    blob_ener_th = config.blob_ener_th,
-                                    reco_group   = group_name_dict[city_name], #config.reco_group,
-                                    reco_table   = table_name_dict[city_name], #config.reco_table,
-                                    reco_columns = column_name_dict[city_name],
-                                    mc_label = config.mc_label,
-                                    reco_label = config.reco_label,
-                                    Rmax = config.Rmax,
-                                    evt_list = None, 
-                                    ghost_label = config.ghost_label)
+                                    blob_ener_th      = config.blob_ener_th,
+                                    reco_group        = group_name_dict[city_name],
+                                    reco_table        = table_name_dict[city_name],
+                                    reco_columns      = column_name_dict[city_name],
+                                    mc_label          = config.mc_label,
+                                    reco_label        = config.reco_label,
+                                    Rmax              = config.Rmax,
+                                    evt_list          = None, 
+                                    ghost_label       = config.ghost_label)
         labelled_MC_voxels, labelled_MC_hits, labelled_reco_voxels, eventInfo, binsInfo, isauraInfo = create_final_dataframes(label_file_dfs,
                                                                                                                               start_id,
                                                                                                                               f,
                                                                                                                               fileout,
                                                                                                                               bin_info,
-                                                                                                                              detector_db = config.detector_db,
-                                                                                                                              binning = config.binning,
-                                                                                                                              Rmax = config.Rmax,
+                                                                                                                              detector_db       = config.detector_db,
+                                                                                                                              binning           = config.binning,
+                                                                                                                              Rmax              = config.Rmax,
                                                                                                                               blob_ener_loss_th = config.blob_ener_loss_th,
-                                                                                                                              blob_ener_th = config.blob_ener_th,
-                                                                                                                              # small_blob_th = config.small_blob_th,
-                                                                                                                              max_distance = config.max_distance,
-                                                                                                                              # fix_track_connection = config.fix_track_connection,
-                                                                                                                              add_isaura_info = config.add_isaura_info)
+                                                                                                                              blob_ener_th      = config.blob_ener_th,
+                                                                                                                              max_distance      = config.max_distance,
+                                                                                                                              add_isaura_info   = config.add_isaura_info)
         if config.max_distance != None:
             if config.mc_label:
                 labelled_MC_voxels = label_event_elements(labelled_MC_voxels, 

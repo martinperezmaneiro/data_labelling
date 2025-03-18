@@ -4,15 +4,9 @@ import tables as tb
 import sys
 from collections import defaultdict
 
-# from utils.histogram_utils import bin_creator, container_creator, mcimg
-# from utils.data_utils      import histog_to_coord
-from utils.labelling_utils import voxel_labelling_MC #, hit_data_cuts
+from utils.labelling_utils import voxel_labelling_MC
 
 from invisible_cities.io   import dst_io as dio
-
-#############################################################
-### CAMBIAR NOMRBE A RECO_LABELLING_UTILS, Y EN TODO LO DEMAS
-#############################################################
 
 def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
     '''
@@ -67,52 +61,6 @@ def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', tab
         reco_hits['binclass'] = None
     
     del labelled_vox, labelled_vox_events
-
-    ###### DEPRECATED, following the previous changes
-
-    # voxel_df = pd.DataFrame()
-    # for (event_id, event_hits), binnum in zip(reco_hits.groupby(id_name), binclass):
-    #     xhits, yhits, zhits = event_hits[coords[0]], event_hits[coords[1]], event_hits[coords[2]]
-
-    #     mccoors  = np.array([xhits, yhits, zhits]).T
-    #     mcenes   = np.array(event_hits[ene_name])
-    #     if simple == True:
-    #         ener_histo    = mcimg(mccoors, mcenes, bins)
-    #         nhits_hist, _ = np.histogramdd(mccoors, bins)
-    #         voxel_df = voxel_df.append(histog_to_coord(event_id, None, ener_histo, None, nhits_hist, bins, binnum = binnum))
-    #     else:
-    #         labels   = np.array(event_hits['npeak']) + 1 #the addition is for the functions to recognize the label
-    #         #as it is based in an histogram where the algorythm looks into the nonzero coords
-    #         label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img,
-    #                                                                               mccoors,
-    #                                                                               mcenes,
-    #                                                                               labels,
-    #                                                                               bins)
-    #         voxel_df = voxel_df.append(histog_to_coord(event_id,
-    #                                                    label_histo,
-    #                                                    ener_histo,
-    #                                                    ratio_histo,
-    #                                                    nhits_hist,
-    #                                                    bins,
-    #                                                    binnum = binnum,
-    #                                                    id_name = 'npeak'))
-    # voxel_df.reset_index()
-
-    # voxel_df = voxel_df.rename(columns = {'ener':'beersh_ener'})
-
-    # if simple != True:
-    #     voxel_df = voxel_df.rename(columns = {'ratio':'npeak_ratio'})
-    #     #Reset the npeak labels values:
-    #     voxel_df.npeak = voxel_df.npeak - 1
-
-    # #Reduce the voxels to 1-1 size
-    # for coord, (size, start) in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
-    #     voxel_df[coord] = voxel_df[coord] - start
-    #     voxel_df[coord] = voxel_df[coord] / size
-
-    # #Make int all the necesary values
-    # for colname in voxel_df.columns:
-    #     voxel_df[colname] = pd.to_numeric(voxel_df[colname], downcast = 'integer')
 
     nan_hits = np.isnan(reco_hits[ene_name])
     if nan_hits.any():

@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
 
-# from utils.histogram_utils           import bin_creator, container_creator
 from utils.reco_labelling_utils import voxelize_reco, label_reco_event
-# from utils.beersheba_labelling_utils import assign_nlabels, merge_mc_reco_voxels
-
-#label_neighbours_ordered because it would be entered as a function imput
 
 def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
     '''
@@ -36,44 +32,8 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = '
     values are also included but only the MC voxels have them
     '''
 
-    # img  = container_creator(total_size, voxel_size)
-    # bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
-
-    # nlabel_dict = assign_nlabels()
-
     #reco hits voxelization
     reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, group = group, table = table, column_names = column_names)
-
-    # !!!!!!!!!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!!!!!!!!
-    # #Joining of the MC and reco voxels, and discrepancies correction
-    # mc_reco_voxels = merge_mc_reco_voxels(labelled_MC_voxels, reco_voxels, relabel = relabel, fix_track_connection = fix_track_connection)
-    # del reco_voxels
-
-    # for event_id, df in mc_reco_voxels.groupby('event_id'):
-    #     #if event_id % 50 == 0:
-    #     #    print(event_id)
-
-    #     event_neighbours_labelled = label_neighbours_function(df, detector_bins, voxel_size, start_bin, nlabel_dict)
-    #     mc_reco_voxels = mc_reco_voxels.merge(event_neighbours_labelled.segclass,
-    #                                               left_index = True,
-    #                                               right_index = True,
-    #                                               how = 'outer')
-    #     mc_reco_voxels['segclass'] = mc_reco_voxels['segclass_y'].fillna(mc_reco_voxels['segclass_x'])
-    #     mc_reco_voxels = mc_reco_voxels.drop(['segclass_x', 'segclass_y'], axis = 1)
-
-    #     #Check if the labelling has sense (just check that all the new classes are consistent to the original ones)
-    #     unique_seg = df.segclass.unique()[~np.isnan(df.segclass.unique())]
-    #     for i in unique_seg:
-    #         unique_seg = np.append(unique_seg, i + 3)
-    #     unique_seg = np.append(unique_seg, 7)
-
-    #     #We have to order them to coincide with the df bc after merging the order changes
-    #     mc_reco_voxels_ev = mc_reco_voxels[mc_reco_voxels.event_id == event_id].sort_values(['event_id', 'x', 'y', 'z'])
-    #     assert (np.isin(mc_reco_voxels_ev.segclass, unique_seg)).all()
-
-    #     #Check that the merge was sucessful
-    #     assert pd.to_numeric(mc_reco_voxels_ev.segclass, downcast = 'integer').equals(event_neighbours_labelled.segclass)
-    #     del mc_reco_voxels_ev, event_neighbours_labelled
 
     # Define the 26 neighbor shifts
     neighbor_shifts = [(dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1) if (dx, dy, dz) != (0, 0, 0)]

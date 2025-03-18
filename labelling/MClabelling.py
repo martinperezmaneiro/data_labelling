@@ -1,9 +1,7 @@
 import numpy  as np
 import pandas as pd
 
-# from utils.data_utils      import histog_to_coord
-# from utils.histogram_utils import container_creator, bin_creator
-from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts #, add_small_blob_mask
+from utils.labelling_utils import add_hits_labels_MC, voxel_labelling_MC, hit_data_cuts
 
 from utils.add_extreme_utils import add_vox_ext_label
 
@@ -34,18 +32,11 @@ def labelling_MC(directory, bins, sig_creator = 'conv', blob_ener_loss_th = None
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
 
-    #     small_blob_th: FLOAT
-    # Threshold for the energy of a group of blob hits to become marked as small.
-
     RETURNS:
         voxelization_df: DATAFRAME
     It contains the positions, energies and labels for each voxel of each event in a single file.
 
     '''
-    # # PUEDO CREAR LOS BINES DE FORMA MÁS SENCILLA ahora que no tengo que crear el binado este...
-    # #Creo el frame del detector y obtengo sus bins
-    # img  = container_creator(total_size, voxel_size)
-    # bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
 
     #Obtenemos la información de partíuclas y hits de un fichero en concreto
     mcpart = dio.load_dst(directory, 'MC', 'particles')
@@ -68,50 +59,6 @@ def labelling_MC(directory, bins, sig_creator = 'conv', blob_ener_loss_th = None
 
     #Hacemos los cortes en los hits
     labelled_hits = hit_data_cuts(labelled_hits, bins, Rmax = Rmax)
-
-    # Small blob mask is a source of differences between old and new approach, but nothing to do with the problem with training and so on
-    # Might be recovered sometime... but not need right now to do it I think
-    # labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
-
-    # !!!!!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!!
-    # Deprecated: small blob mask is now substituted by just forcing the extreme voxels to be blob voxels (both for signal, one of them for bkg)
-    # labelled_hits = add_small_blob_mask(labelled_hits, small_blob_th = small_blob_th)
-
-    #Creamos el df donde vamos a añadir la información de los voxeles etiquetados
-    # voxelization_df = pd.DataFrame()
-
-    # THIS WHOLE VOXELIZATION PART CAN BE SIMPLIFIED, this img thing is only needed afterwards for
-    # beersheba labelling, not needed for the regular MC voxels (and maybe even not there)
-    # !!!!!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!!!!
-    #Recorremos evento a evento el DF con los hits etiquetados para hacerle a cada uno su histograma y
-    #finalmente extraer las coordenadas
-    # for event_id, event_hits in labelled_hits.groupby('event_id'):
-    #     xhits, yhits, zhits = event_hits['x'], event_hits['y'], event_hits['z']
-
-    #     mccoors  = np.array([xhits, yhits, zhits]).T
-    #     mcenes   = np.array(event_hits['energy'])
-    #     labels   = np.array(event_hits['segclass'])
-    #     binclass = np.array(event_hits['binclass'])[0]
-    #     small_b  = np.array(event_hits['small_b'])
-
-    #     label_histo, ener_histo, ratio_histo, nhits_hist = voxel_labelling_MC(img, mccoors, mcenes, labels, small_b, bins)
-    #     del mccoors, mcenes, labels, small_b, xhits, yhits, zhits
-
-    #     voxelization_df = voxelization_df.append(histog_to_coord(event_id, label_histo, ener_histo, ratio_histo, nhits_hist, bins, binnum = binclass))
-    #     del label_histo, ener_histo, ratio_histo, nhits_hist
-
-    # voxelization_df.reset_index()
-
-    # #Con esto reducimos los voxeles a meros puntos por sencillez, ya que nos deshacemos del tamaño de voxel
-    # #y ponemos su origen en 0
-    # #(el tamaño se tuvo ya en cuenta en la voxelizacion y por tanto ahora esto es indiferente)
-    # for coord, (size, start) in zip(['x', 'y', 'z'], zip(voxel_size, start_bin)):
-    #     voxelization_df[coord] = voxelization_df[coord] - start
-    #     voxelization_df[coord] = voxelization_df[coord] / size
-
-    # #Hacemos enteras las coord y labels
-    # for colname in voxelization_df.columns:
-    #     voxelization_df[colname] = pd.to_numeric(voxelization_df[colname], downcast = 'integer')
 
     # Vozelize with new function
     voxelization_df = voxel_labelling_MC(labelled_hits, bins)

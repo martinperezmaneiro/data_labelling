@@ -10,29 +10,29 @@ from labelling.recolabelling      import labelling_reco
 
 def label_file(directory,
                bins,
-               sig_creator = 'conv',
+               sig_creator       = 'conv',
                blob_ener_loss_th = None,
-               blob_ener_th = None,
-               reco_group = 'RECO',
-               reco_table = 'Events',
-               reco_columns = ['event', 'X', 'Y', 'Z', 'Ec'],
-               mc_label = True,
-               reco_label = True,
-               Rmax = np.nan,
-               evt_list = None, 
-               ghost_label = 0):
+               blob_ener_th      = None,
+               reco_group        = 'RECO',
+               reco_table        = 'Events',
+               reco_columns      = ['event', 'X', 'Y', 'Z', 'Ec'],
+               mc_label          = True,
+               reco_label        = True,
+               Rmax              = np.nan,
+               evt_list          = None, 
+               ghost_label       = 0):
     '''
-    Function that performs the whole beersheba labelling. Starting from the MC hits, they are labelled in three
-    classes (rest, track, blob) and voxelized with the labelling_MC function. Then, with the labelling_beersheba
+    Function that performs the whole reco labelling. Starting from the MC hits, they are labelled in three
+    classes (rest, track, blob) and voxelized with the labelling_MC function. Then, with the labelling_reco
     we voxelize the reconstructed hits. These voxels are merged with the MC voxels in order to match information.
-    Some corrections are done to those MC voxels that fall outside the beersheba voxels. Once that is done, the
-    algorithm labels the empty beersheba voxels as neighbours of one of the main classes. It is also created a new
-    ghost class to label those disconnected voxels that arise from the beersheba reconstruction that don't have
+    Some corrections are done to those MC voxels that fall outside the reco voxels. Once that is done, the
+    algorithm labels the empty reco voxels as neighbours of one of the main classes. It is also created a new
+    ghost class to label those disconnected voxels that arise from the reconstruction that don't have
     a MC origin, so they don't have main class neighbours to be labelled.
 
     Args:
         directory: STR
-    Contains the directory of a file with several events with Monte Carlo and beersheba hits information.
+    Contains the directory of a file with several events with Monte Carlo and reco hits information.
 
         bins: LIST
     Contains the binning in the 3 dimensions.
@@ -50,33 +50,27 @@ def label_file(directory,
         blob_ener_th: FLOAT
     Energy threshold for the last hits of a track to become blob class.
 
-        simple: BOOL
-    If True, in the voxelization we will only use hits energy information. Else, the voxelization would include
-    the information of some feature (with its ratio), which in beersheba data it's just the npeak variable. I
-    don't really know if this is an important information.
+        reco_group: STR
+    Group name of the hits to label.
 
-        relabel: BOOL
-    If True, the merge_MC_beersh_voxels would try to include the external MC labelled voxels to some empty beersheba
-    voxels, so we can benefit from this information. Else, this info will be lost and we would stick only to the
-    true coincident voxels.
-
-        fix_track_connection: STR
-    Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
-    If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
-    Otherwise this won't be done.
+        reco_table: STR
+    Table name of the hits to label.
 
         mc_label: BOOL
     If True, labelling_MC function will be passed. Otherwise, it will return empty dataframes.
 
-        beersh_label: BOOL
-    If True, and if mc_label is also True (because we need MC labelled voxels information), labelling_beersheba
+        reco_label: BOOL
+    If True, and if mc_label is also True (because we need MC labelled voxels information), labelling_reco
     will be passed. Otherwise, if False or if mc_label False, will return an empty dataframe.
 
         Rmax: NaN or FLOAT
     Value to perform the fiducial cut of the hits. If NaN, the cut is not done.
 
-        small_blob_th: FLOAT
-    Threshold for the energy of a group of blob hits to be marked as a small blob.
+        evt_list: LIST
+    List of the events we want to be labelled.
+
+        ghost_label: INT
+    Label for the ghost class (spurious voxels that don't have any coincidence)
 
     RETURNS:
         labelled_MC_voxels: DATAFRAME
@@ -88,14 +82,12 @@ def label_file(directory,
     file. We will use them to plot nicer images.
 
         labelled_reco_voxels: DATAFRAME
-    If the conditions are satisfied (mc_label and segclas = True), this contains the labelled beersheba voxels
+    If the conditions are satisfied (mc_label and segclas = True), this contains the labelled reco voxels
     for each event in the file.
     '''
 
-    #Just in case mc_label and beersh_label are False, to return something
+    #Just in case mc_label and reco_label are False, to return something
     labelled_MC_voxels, labelled_MC_hits, labelled_reco_voxels = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-    # AQUI HACER LA ESCOLLICION ENTRE UN TOTAL/VOXEL/START PUESTO POR MI, O DADO POR EL DATABASE
 
     if mc_label:
         labelled_MC_voxels, labelled_MC_hits = labelling_MC(directory,
@@ -124,7 +116,7 @@ def label_file(directory,
                                                                     'reco_ener': 'energy'})
                                                                     # 'ener': 'MC_ener'})
     else:
-        print('No beersheba labelling has been performed')
+        print('No reco labelling has been performed')
 
     return labelled_MC_voxels, labelled_MC_hits, labelled_reco_voxels
 
@@ -134,14 +126,12 @@ def create_final_dataframes(label_file_dfs,
                             directory,
                             destination_directory,
                             bin_info,
-                            detector_db = 'next100',
-                            binning = 'regular',
-                            Rmax = np.nan,
+                            detector_db       = 'next100',
+                            binning           = 'regular',
+                            Rmax              = np.nan,
                             blob_ener_loss_th = None,
                             blob_ener_th = None,
-                            # small_blob_th = None,
                             max_distance = None,
-                            # fix_track_connection = None,
                             add_isaura_info = False):
     '''
     This function takes the output of label_file function and prepares the data to be saved in a h5 file.
@@ -153,7 +143,7 @@ def create_final_dataframes(label_file_dfs,
     Args:
         label_file_dfs: TUPLE OF DATAFRAMES
     It's directly the output of the label_file function, that contains three dataframes: the labelled MC voxels,
-    the labelled MC hits and the labelled beersheba voxels.
+    the labelled MC hits and the labelled reco voxels.
 
         start_id: INT
     Number to do the mapping between event information and its hits/voxels. It's actualized for every input file
@@ -187,20 +177,12 @@ def create_final_dataframes(label_file_dfs,
         blob_ener_th: FLOAT
     Threshold for the last hits of a track to become blob regarding a fixed value of energy.
 
-    #     small_blob_th: FLOAT
-    # Threshold for the energy of a group of blob hits to be marked as a small blob.
-
         max_distance: FLOAT
     Indicates the maximum distance between nodes to be connected for element counting.
 
-    #     fix_track_connection: STR
-    # Used to solve the beersheba track desconnection problem (temporary) by adding the MC track voxels.
-    # If 'track', only track MC voxels will be added. If 'all', all the MC voxels are added.
-    # Otherwise this won't be done.
-
         add_isaura_info: BOOL
-    If True, it means that we have the isaura files in an analogue path to the beersheba file we are
-    labelling (changing beersheba for isaura), and we are going to add another DataFrame with this information.
+    If True, it means that we have the isaura files in an analogue path to the reco file we are
+    labelling (changing reco for isaura), and we are going to add another DataFrame with this information.
 
     RETURNS:
         labelled_MC_voxels: DATAFRAME
@@ -213,9 +195,9 @@ def create_final_dataframes(label_file_dfs,
     labelled MC hits for each event in the file, and it has been added a dataset_id that maps each hit
     with the event information. We will use them to plot nicer images.
 
-        labelled_beersheba: DATAFRAME
+        labelled_reco: DATAFRAME
     If the conditions are satisfied (mc_label and segclas = True, i.e. the dataframe is not empty), this
-    contains the labelled beersheba voxels for each event in the file, and it has been added a dataset_id
+    contains the labelled reco voxels for each event in the file, and it has been added a dataset_id
     that maps each voxel with the event information.
 
         eventInfo: DATAFRAME
@@ -230,7 +212,7 @@ def create_final_dataframes(label_file_dfs,
     add_isaura_info is False or the isaura directory is not correct, it returns an empty dataframe.
     '''
 
-    labelled_MC_voxels, labelled_MC_hits, labelled_beersheba = label_file_dfs
+    labelled_MC_voxels, labelled_MC_hits, labelled_reco = label_file_dfs
     del label_file_dfs
     if labelled_MC_voxels.empty:
         raise Exception('DataFrames are empty, labelling has not been performed')
@@ -253,13 +235,13 @@ def create_final_dataframes(label_file_dfs,
         labelled_MC_voxels = labelled_MC_voxels.drop('event_id', axis=1)
         labelled_MC_hits   = labelled_MC_hits.drop('event_id', axis=1)
 
-        if labelled_beersheba.empty:
+        if labelled_reco.empty:
             #just so I don't get an error when writing an empty df
-            labelled_beersheba = pd.DataFrame([], columns = ['dataset_id'])
-            print('Beersheba labelling has not been performed')
+            labelled_reco = pd.DataFrame([], columns = ['dataset_id'])
+            print('Reco labelling has not been performed')
         else:
-            labelled_beersheba = labelled_beersheba.assign(dataset_id = labelled_beersheba.event_id.map(dct_map))
-            labelled_beersheba = labelled_beersheba.drop('event_id', axis=1)
+            labelled_reco = labelled_reco.assign(dataset_id = labelled_reco.event_id.map(dct_map))
+            labelled_reco = labelled_reco.drop('event_id', axis=1)
 
         if add_isaura_info:
             isauraInfo = get_isaura_info(directory, dct_map)
@@ -295,13 +277,12 @@ def create_final_dataframes(label_file_dfs,
                         #   'sb_th'   : small_blob_th,
                           'max_dis' : 'None' if max_distance == None else max_distance
                           }]).infer_objects() #solves the problem of mixing str with numbers in a df to write it using IC functions
-    print(binsInfo.to_records().dtype)
 
     #We add this apart bc otherwise all the elements in the df change to object
     #type, and then when writing on a file throws an error
     # binsInfo['fix_conn'] = fix_track_connection
 
-    return labelled_MC_voxels, labelled_MC_hits, labelled_beersheba, eventInfo, binsInfo, isauraInfo
+    return labelled_MC_voxels, labelled_MC_hits, labelled_reco, eventInfo, binsInfo, isauraInfo
 
 
 def get_isaura_info(directory, dct_map):
@@ -311,7 +292,7 @@ def get_isaura_info(directory, dct_map):
 
     Args:
         directory: STR
-    Path to the beersheba file we are currently labelling/working with. Needs to have the same structure
+    Path to the reco file we are currently labelling/working with. Needs to have the same structure
     as the isaura path, but changing the names of the cities in order to work.
 
         dct_map: DICT
@@ -324,12 +305,13 @@ def get_isaura_info(directory, dct_map):
 
     #I change the directory name to the one that contains isauras
     isaura_path = directory.replace('beersheba', 'isaura')
+    isaura_path = directory.replace('sophronia', 'isaura')
 
     if os.path.isfile(isaura_path):
         #Loading the track info dataframe
         isaura_info = dio.load_dst(isaura_path, 'Tracking', 'Tracks')
 
-        #Check if there is a mapping between MC and beersheba/isaura info
+        #Check if there is a mapping between MC and beersheba & sophronia/isaura info
         #Needed for 0nubb data as the MC and isaura files don't have the
         #same id, but there is a mapping in /Run/eventMap
         with tb.open_file(directory, 'r') as h5in:
