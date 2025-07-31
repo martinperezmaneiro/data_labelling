@@ -3,7 +3,7 @@ import numpy as np
 
 from utils.reco_labelling_utils import voxelize_reco, label_reco_event
 
-def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
+def labelling_reco(reco_dir, bins, labelled_MC_voxels, interpol_params, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
     '''
     Takes the reco file, voxelizes its hits and labels them with the help of the labelled MC voxels,
     the output of the labelling_MC function, depending on the chosen neighbour labelling method.
@@ -18,6 +18,9 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = '
         labelled_MC_voxels: DATAFRAME
     Contains the MC data labelled voxels that will be the base of the labelling.
 
+        interpol_params: DCT
+    Contains the parameters for interpolate the data in XY.
+
         group: STR
     Name of the group to label.
 
@@ -25,7 +28,8 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = '
     Name of the hits table to label.
 
         column_names: LIST
-    Name of the column names of the 
+    Name of the column names of the table.
+    
     RETURNS:
         labelled_reco_voxels: DATAFRAME
     Contains all the reco labelled voxels. It has their positions, energies, segclass, binclass; ener and ratio
@@ -33,7 +37,7 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, group = 'RECO', table = '
     '''
 
     #reco hits voxelization
-    reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, group = group, table = table, column_names = column_names)
+    reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, interpol_params = interpol_params, group = group, table = table, column_names = column_names)
 
     # Define the 26 neighbor shifts
     neighbor_shifts = [(dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1) if (dx, dy, dz) != (0, 0, 0)]

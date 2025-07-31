@@ -7,8 +7,9 @@ from collections import defaultdict
 from utils.labelling_utils import voxel_labelling_MC
 
 from invisible_cities.io   import dst_io as dio
+from invisible_cities.reco.deconv_functions import deconvolution_input
 
-def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
+def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), interpol_params = {'interpolate':False}, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
     '''
     Voxelizes any kind of reconstructed hits (sophronia, beersheba). In addition, you can already include the binary classification
     information of each event (taken from the labelled MC voxels).
@@ -22,6 +23,9 @@ def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', tab
 
         labelled_vox: DATAFRAME
     Contains the labelled MC information, output of the labelling_MC function.
+
+        interpol_params: DCT
+    Contains the parameters for interpolate the data in XY.
 
     RETURNS:
         voxel_df: DATAFRAME
@@ -52,6 +56,12 @@ def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), group = 'RECO', tab
 
     # Pick only events that are labelled in the MC voxel dataframe
     reco_hits = reco_hits[np.isin(reco_hits['event'], labelled_vox_events)]
+
+    # Interpolate reco events (in principle only works for sophronia events, we don't want beersheba events to be interpolated)
+    if interpol_params['interpolate']:
+        # Use XY bins to interpolate
+        interpolate = deconvolution_input(interpol_params['sample_width'], bins[:2])
+        reco_hits = interpolate_reco_events(reco_hits, interpolate, interp_thr=interpol_params['interp_thr'])
 
     if labelled_vox.empty != True:
         binclass_df = labelled_vox[['event_id', 'binclass']].drop_duplicates()
@@ -126,6 +136,50 @@ def label_reco_event(mc_ev, reco_ev, neighbor_shifts, ghost_label = 0):
     assert len(lab_reco_vox) == len(reco_ev), 'Something didnt match in the reco labelling'
 
     return reco_ev.merge(lab_reco_vox, on = ['X', 'Y', 'Z']).rename(columns = {'event':'event_id', 'X':'x', 'Y':'y', 'Z':'z'})
+
+
+def interpolate_reco_events(df, interp_function, interp_coords = ['X', 'Y'], interp_weight = 'Ec', interp_thr = 0.05):
+    '''
+    Function to interpolate the hits in each Z slice. It is made for Sophronia events.
+
+    df: pd.DataFrame()
+        Contains an event or a group of events to interpolate 
+    interp_function: function
+        Contains the interpolation function (same as used in Beersheba in principle)
+    interp_coords: list
+        Contains the name of the coordinates to interpolate
+    interp_weight: str
+        Contains the name of the variable to interpolate
+    interp_thr: float
+        Percentage of the max value in a slice to delete very small values of the interpolation
+    '''
+    interp_df = pd.DataFrame([])
+    # All these variables are the same for the same slice of Z and event, so we just include them back again after interpolating
+    for i, ((event, time, npeak, Xpeak, Ypeak, nsipm, Xrms, Yrms, Qc, track_id, Ep, Z), slice_df) in enumerate(df.groupby(['event', 'time', 'npeak', 'Xpeak', 'Ypeak', 'nsipm', 'Xrms', 'Yrms', 'Qc', 'track_id', 'Ep', 'Z'])):
+        # If there is only one hit in the slice, we cannot interpolate
+        if len(slice_df) <= 1:
+            interp_df = interp_df.append(slice_df)
+            continue
+        # Perform interpolation
+        Hs, inter_points = interp_function((slice_df[interp_coords[0]].values, slice_df[interp_coords[1]].values), slice_df[interp_weight].values)
+        # Create the interpolated DF similar to the original
+        slice_interp = pd.DataFrame({'event':event, 'time':time, 'npeak':npeak, 'Xpeak':Xpeak, 'Ypeak':Ypeak, 'nsipm':nsipm, 'Xrms':Xrms, 'Yrms':Yrms, 'Qc':Qc, 'track_id':track_id, 'Ep':Ep,
+                                     'X': inter_points[0],
+                                     'Y': inter_points[1],
+                                     'Z': Z,
+                                     'int_': Hs.flatten()
+                                     })
+        # Select only the interpolation values above a certain % given by interp_thr of the max of the slice
+        slice_interp = slice_interp[slice_interp['int_'] > interp_thr * slice_interp['int_'].max()]
+        # Normalize the interpolation values and redistribute Q, E and Ec in the interpolated slice
+        slice_interp['int_norm'] = slice_interp['int_'] / sum(slice_interp['int_'])
+        slice_interp['Q'] = slice_interp['int_norm'] * slice_df['Q'].sum()
+        slice_interp['E'] = slice_interp['int_norm'] * slice_df['E'].sum()
+        slice_interp['Ec'] = slice_interp['int_norm'] * slice_df['Ec'].sum()
+        # Sort interpolated slice and append to the whole output dataframe
+        slice_interp = slice_interp[slice_df.columns]
+        interp_df = interp_df.append(slice_interp)
+    return interp_df.reset_index(drop=True)
 
 # def relabel_outside_voxels(merged_voxels):
 #     '''

@@ -26,6 +26,8 @@ It takes a CONFIG FILE with the following information:
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
 
+ - interpol_params       - parameters for interpolation, that include 'interpolate' (True/False), 'sample_width' and 'interp_thr'
+
  - mc_label              - bool that indicates if the process does the labelling to the MC data
  - reco_label            - bool that indicates if the process does the labelling to the Reco data, requires mc_label True
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
@@ -92,6 +94,7 @@ if __name__ == "__main__":
                                     sig_creator       = data_type_mapping[config.data_type],
                                     blob_ener_loss_th = config.blob_ener_loss_th,
                                     blob_ener_th      = config.blob_ener_th,
+                                    interpol_params   = config.interpol_params,
                                     reco_group        = group_name_dict[city_name],
                                     reco_table        = table_name_dict[city_name],
                                     reco_columns      = column_name_dict[city_name],

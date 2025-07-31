@@ -13,6 +13,7 @@ def label_file(directory,
                sig_creator       = 'conv',
                blob_ener_loss_th = None,
                blob_ener_th      = None,
+               interpol_params   = {'interpolate':False},
                reco_group        = 'RECO',
                reco_table        = 'Events',
                reco_columns      = ['event', 'X', 'Y', 'Z', 'Ec'],
@@ -50,6 +51,9 @@ def label_file(directory,
         blob_ener_th: FLOAT
     Energy threshold for the last hits of a track to become blob class.
 
+        interpol_params: DCT
+    Contains the parameters for interpolate the data in XY.
+    
         reco_group: STR
     Group name of the hits to label.
 
@@ -104,6 +108,7 @@ def label_file(directory,
         labelled_reco_voxels = labelling_reco(directory,
                                               bins, 
                                               labelled_MC_voxels, 
+                                              interpol_params,
                                               group = reco_group, 
                                               table = reco_table, 
                                               column_names = reco_columns, 
