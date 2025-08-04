@@ -237,7 +237,9 @@ def voxel_labelling_MC(labelled_hits, bins, coords = ['x', 'y', 'z'], id_name = 
         '''
         bname = ['xbin', 'ybin', 'zbin']
         # Voxelize
-        for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1), right = False).astype('int') #adding this to check if it matches old approach
+        for i in range(3): labelled_hits[bname[i]] = pd.cut(labelled_hits[coords[i]], bins[i], labels = np.arange(0, len(bins[i])-1)).astype('int') 
+        # we had right = False to check if the new labelling was exactly the same as the new one, but it was raising error for the interpolated
+        # data, so we can delete it if we are consistent in all the labelling (meaning that I voxelize always with the same criteria)
         
         # Get energy and nhits for each voxel
         voxel_ener = labelled_hits.groupby([id_name] + bname + ['binclass']).agg(energy=(ene_name, 'sum'), nhits = (ene_name, 'count')).reset_index()
