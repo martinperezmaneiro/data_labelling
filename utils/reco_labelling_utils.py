@@ -4,12 +4,12 @@ import tables as tb
 import sys
 from collections import defaultdict
 
-from utils.labelling_utils import voxel_labelling_MC
+from utils.labelling_utils import voxel_labelling_MC, hit_data_cuts
 
 from invisible_cities.io   import dst_io as dio
 from invisible_cities.reco.deconv_functions import deconvolution_input
 
-def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), interpol_params = {'interpolate':False}, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec']):
+def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), interpol_params = {'interpolate':False}, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], Rmax = np.nan):
     '''
     Voxelizes any kind of reconstructed hits (sophronia, beersheba). In addition, you can already include the binary classification
     information of each event (taken from the labelled MC voxels).
@@ -39,9 +39,6 @@ def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), interpol_params = {
     # img  = container_creator(total_size, voxel_size)
     # bins = bin_creator(img, steps = voxel_size, x0 = start_bin)
 
-    #reco_hits = hit_data_cuts(reco_hits, detector_bins, Rmax = Rmax, coords = ['X', 'Y', 'Z'], identifier = 'event')
-    #I perform the cut on beersheba data depending on the events that were cut
-    #for the MC because of the fiducial volume
     labelled_vox_events = labelled_vox['event_id'].unique()
 
     #Check if there is a mapping between MC and the beersheba/isaura info
@@ -56,6 +53,9 @@ def voxelize_reco(file, bins, labelled_vox = pd.DataFrame(), interpol_params = {
 
     # Pick only events that are labelled in the MC voxel dataframe
     reco_hits = reco_hits[np.isin(reco_hits['event'], labelled_vox_events)]
+
+    # We still need to do the fiducial cut because reco tracks have diffusion and are bigger than MC tracks!!
+    reco_hits = hit_data_cuts(reco_hits, bins, Rmax = Rmax, coords = coords, identifier = id_name)
 
     # Interpolate reco events (in principle only works for sophronia events, we don't want beersheba events to be interpolated)
     if interpol_params['interpolate']:

@@ -3,7 +3,7 @@ import numpy as np
 
 from utils.reco_labelling_utils import voxelize_reco, label_reco_event
 
-def labelling_reco(reco_dir, bins, labelled_MC_voxels, interpol_params, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0):
+def labelling_reco(reco_dir, bins, labelled_MC_voxels, interpol_params, group = 'RECO', table = 'Events', column_names = ['event', 'X', 'Y', 'Z', 'Ec'], ghost_label = 0, Rmax = np.nan):
     '''
     Takes the reco file, voxelizes its hits and labels them with the help of the labelled MC voxels,
     the output of the labelling_MC function, depending on the chosen neighbour labelling method.
@@ -37,7 +37,7 @@ def labelling_reco(reco_dir, bins, labelled_MC_voxels, interpol_params, group = 
     '''
 
     #reco hits voxelization
-    reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, interpol_params = interpol_params, group = group, table = table, column_names = column_names)
+    reco_voxels = voxelize_reco(reco_dir, bins, labelled_vox = labelled_MC_voxels, interpol_params = interpol_params, group = group, table = table, column_names = column_names, Rmax = Rmax)
 
     # Define the 26 neighbor shifts
     neighbor_shifts = [(dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1) if (dx, dy, dz) != (0, 0, 0)]

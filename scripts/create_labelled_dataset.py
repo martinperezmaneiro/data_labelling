@@ -20,16 +20,17 @@ It takes a CONFIG FILE with the following information:
  - voxel_size            - tuple with the size of the voxels for each coordinate (in mm)
 
  - data_type             - string with the kind of data to label ('doublescape' for double scape, '0nubb' for neutrinoless double beta events)
- - city                  - name of the city to label (after MC); now is adapted for 'beersheba' or 'sophronia'
+ - city                  - name of the city to label (after MC); now is adapted for 'beersheba' or 'sophronia' (basically, for the different names of the tables in both)
 
  - blob_ener_loss_th     - threshold for the main blob class labelling (in terms of percentage of loss energy at the end
                            of the track with respect to the total track energy)
  - blob_ener_th          - threshold for the main blob class labelling (in terms of absolute energy lost at the end of the track)
 
- - interpol_params       - parameters for interpolation, that include 'interpolate' (True/False), 'sample_width' and 'interp_thr'
+ - interpol_params       - parameters for interpolation, that include 'interpolate' (True/False), 'sample_width' (SiPM spacing) and 'interp_thr' (threshold for a hit to be considered)
+                           regarding the use, to be effective we should set the flag to True, the binning to regular and voxel_size to the desired interpolation size in XY
 
  - mc_label              - bool that indicates if the process does the labelling to the MC data
- - reco_label            - bool that indicates if the process does the labelling to the Reco data, requires mc_label True
+ - reco_label            - bool that indicates if the process does the labelling to the Reco data, requires mc_label True (use for Sophronia or Beersheba files only)
  - Rmax                  - value for the fiducial cut, if NaN the cut is not performed
  - ghost_label           - value for the voxels that cannot be assigned to any of the segmentation classes (they come from spureous hits)
  - max_distance          - value of the maximum distance between voxels to perform the group counting algorythm, usually sqrt(3); if None, grouping is not performed

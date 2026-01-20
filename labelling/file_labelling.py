@@ -112,7 +112,8 @@ def label_file(directory,
                                               group = reco_group, 
                                               table = reco_table, 
                                               column_names = reco_columns, 
-                                              ghost_label = ghost_label)
+                                              ghost_label = ghost_label, 
+                                              Rmax = Rmax)
 
         #Rename to match the names in the next_sparseconvnet functions
         labelled_reco_voxels = labelled_reco_voxels.rename(columns={'x': 'xbin',
