@@ -49,7 +49,7 @@ def add_binclass(mchits, mcpart, sig_creator = 'conv'):
 
     return mchits_binclass
 
-def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_e = None, label_dict={'rest':1, 'track':2, 'blob':3}):
+def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_e = None, track_len = None, label_dict={'rest':1, 'track':2, 'blob':3}):
     '''
     Add segmentation class to each hit in the file, after being filled with the binclass.
     The classes are 1 - other, 2 - track, 3 - blob.
@@ -143,6 +143,10 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
 
     # Create the % of lost energy
     hits_label = hits_label.assign(lost_ener = (hits_label.cumenergy / hits_label.track_ener).fillna(0))
+    # Compute distance between hits and cumulative distance
+    hits_label = calculate_track_distances(tracks_info, hits_label)
+    hits_label = hits_label.merge(hits_label.groupby(['event_id', 'particle_id']).apply(lambda x: sum(x['dist_hits'])).rename('totdist'), on = ['event_id', 'particle_id'])
+    hits_label = hits_label.assign(dist_ratio = (hits_label.cumdist / hits_label.totdist))
 
     if delta_e is not None:
         # Choose by absolute energy loss
@@ -151,9 +155,12 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     if delta_loss is not None:
         # Choose by relative energy loss
         blob_mask = (hits_label.lost_ener < delta_loss)
+    if track_len is not None:
+        # Choose by % length of track
+        blob_mask = (hits_label.dist_ratio > track_len)
 
-    if delta_e == None and delta_loss == None:
-        raise ValueError('Neither delta_e nor delta_loss has been given a value to define the blobs')
+    if delta_e == None and delta_loss == None and track_len == None:
+        raise ValueError('Neither delta_e nor delta_loss nor track_len has been given a value to define the blobs')
 
     # For those selected in the previous step, assign blob label
     hits_label.loc[(hits_label.segclass==label_dict['track'])& blob_mask, 'segclass'] = label_dict['blob']
@@ -163,21 +170,17 @@ def add_segclass(mchits, mcpart, sig_creator = 'conv', delta_loss = None, delta_
     blob_labelled_tracks = hits_label[hits_label.segclass == label_dict['blob']][['event_id', 'particle_id']].drop_duplicates()
     missing_blob_mask = tracks_info[['event_id', 'particle_id']].merge(blob_labelled_tracks, how='left', indicator=True)._merge == 'left_only'
     blobless_tracks = tracks_info[missing_blob_mask.values]
-    del blob_labelled_tracks, missing_blob_mask
+    del blob_labelled_tracks, missing_blob_mask, tracks_info
 
     #Localizo los hits de esas trazas (que suelen ser muy pocos por cada traza) y los etiqueto todos como blob, así no queda ninguna traza sin blob
     missing_hits_mask = hits_label[['event_id', 'particle_id']].merge(blobless_tracks, how='left', indicator=True)._merge == 'both'
     hits_label.loc[(hits_label.segclass==label_dict['track'])& missing_hits_mask.values, 'segclass'] = label_dict['blob']
     del blobless_tracks, missing_hits_mask
-
-    #Calculo la distancia entre hits de las trazas y lo añado al df de información que tenía
-    hits_label_dist = calculate_track_distances(tracks_info, hits_label)
-    del tracks_info, hits_label
-
+    
     #Escojo solo la información que me interesa
-    hits_label_dist = hits_label_dist[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'extlabel', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
+    hits_label = hits_label[['event_id', 'x', 'y', 'z', 'hit_id', 'particle_id',  'energy', 'segclass', 'binclass', 'extlabel', 'dist_hits', 'cumdist', 'particle_name', 'creator_proc']].reset_index(drop=True)
 
-    return hits_label_dist
+    return hits_label
 
 def add_hits_labels_MC(mchits, mcpart, sig_creator = 'conv', blob_ener_loss_th = None, blob_ener_th = None):
     '''
